@@ -245,8 +245,8 @@ def save_to_panoimages(frame,cur_save_dir):
     return NotImplementedError
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwon/SoftwareCaptsone/data/waymo/raw_data/segment-17065833287841703_2980_000_3000_000_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwon/SoftwareCaptsone/data/waymo/waymo_processed_data")
+    datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
