@@ -12,7 +12,8 @@ from net.utils import common_utils
 import tensorflow as tf
 from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_utils
 from waymo_open_dataset import dataset_pb2
-
+from pathlib import Path
+import multiprocessing
 try:
     tf.enable_eager_execution()
 except:
@@ -173,7 +174,7 @@ def save_lidar_points(frame, cur_save_path):
 def process_single_sequence(sequence_file, save_path, sampled_interval, has_label=True):
     sequence_name = os.path.splitext(os.path.basename(sequence_file))[0]
 
-    # print('Load record (sampled_interval=%d): %s' % (sampled_interval, sequence_name))
+    print('Load record (sampled_interval=%d): %s' % (sampled_interval, sequence_name))
     if not sequence_file.exists():
         print('NotFoundError: %s' % sequence_file)
         return []
@@ -192,7 +193,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     for cnt, data in enumerate(dataset):
         if cnt % sampled_interval != 0:
             continue
-        # print(sequence_name, cnt)
+        print(sequence_name, cnt)
         frame = dataset_pb2.Frame()
         frame.ParseFromString(bytearray(data.numpy()))
 
@@ -214,7 +215,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         if has_label:
             annotations = generate_labels(frame)
             info['annos'] = annotations
-        pano_image=save_to_panoimages(frame,cur_save_dir/('%04d.jpg'%cnt))
+        # pano_image=save_to_panoimages(frame,cur_save_dir/('%04d.jpg'%cnt))
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
         info['num_points_of_each_lidar'] = num_points_of_each_lidar
 
@@ -237,18 +238,15 @@ def save_to_panoimages(frame,cur_save_dir):
         image5.append(image)
 
     pano=convert_to_panoimages(image5) 
-    cv2.imwrite('original',cur_save_dir)
+    # cv2.imwrite('original',cur_save_dir)
 
 
 
     return NotImplementedError
 
 if __name__=="__main__":
-    seq_file="segment-17065833287841703_2980_000_3000_000_with_camera_labels.tfrecord"
-    datapath="/home/seongwon/Softwarecaptsone/data/waymo/raw_data/segment-17065833287841703_2980_000_3000_000_with_camera_labels.tfrecord"
-    savepath="/home/seongwon/Softwarecaptsone/data/waymo/"
+    datapath=Path("/home/seongwon/SoftwareCaptsone/data/waymo/raw_data/segment-17065833287841703_2980_000_3000_000_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwon/SoftwareCaptsone/data/waymo/waymo_processed_data")
     sampled_interval=1
-    savepath=os.path.abspath(savepath)
-    datapath=os.path.abspath(datapath)
-    print(type(datapath))
-    process_single_sequence(datapath,savepath,1,True)
+    has_label=True
+    process_single_sequence(datapath,savepath,sampled_interval,has_label)
