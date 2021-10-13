@@ -31,7 +31,7 @@ class WaymoSequenceLoader():
     def get_range_image(self):
         for frame in self.frames:
             (range_images, camera_projections,range_image_top_pose) = frame_utils.parse_range_image_and_camera_projection(frame)
-            self.convert_range_image_to_point_cloud(range_images, camera_projections,range_image_top_pose)
+            points, cp_points, points_NLZ, points_intensity, points_elongation=self.convert_range_image_to_point_cloud(range_images, camera_projections,range_image_top_pose)
 
     def convert_range_image_to_point_cloud(frame, range_images, camera_projections, range_image_top_pose, ri_index=0):
         """
@@ -48,7 +48,7 @@ class WaymoSequenceLoader():
             Returns:
             points: {[N, 3]} list of 3d lidar points of length 5 (number of lidars).
             cp_points: {[N, 6]} list of camera projections of length 5 (number of lidars).
-            """
+        """
         calibrations = sorted(frame.context.laser_calibrations, key=lambda c: c.name)
         points = []
         cp_points = []
