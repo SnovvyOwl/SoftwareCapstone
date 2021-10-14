@@ -197,7 +197,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     for cnt, data in enumerate(dataset):
         if cnt % sampled_interval != 0:
             continue
-        print(sequence_name, cnt)
+        # print(sequence_name, cnt)
         frame = dataset_pb2.Frame()
         frame.ParseFromString(bytearray(data.numpy()))
 
@@ -234,22 +234,30 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     return sequence_infos
 ### 5 image to pano
 def convert_to_panoimages(images):
+    import cv2
     front=images[0]
     front_left=images[1]
     side_left=images[2]
     front_right=images[3]
     side_right=images[4]
-    panorma_image=front
-    return panorma_image
+    imgfile_front=Image.fromarray((tf.image.decode_jpeg(front.image).numpy()))
+    imgfile_front_left=Image.fromarray((tf.image.decode_jpeg(front_left.image).numpy()))
+    imgfile_side_left=Image.fromarray((tf.image.decode_jpeg(side_left.image).numpy()))
+    imgfile_front_right=Image.fromarray((tf.image.decode_jpeg(front_right.image).numpy()))
+    imgfile_side_right=Image.fromarray((tf.image.decode_jpeg(side_right.image).numpy()))
+    stitcher=cv2.Stitcher.create(cv2.Stitcher_PANORAMA)
+    status, panorama_image=stitcher(imgfile_front,imgfile_front_left)
+    panorama_image.show()
+    # return panorma_image
 
 def save_to_panoimages(frame,cur_save_dir):
-    import cv2
+    
     image5=[]
     for index, image in enumerate(frame.images): #프레임당이미지 다섯개
         image5.append(image)
 
     pano=convert_to_panoimages(image5) 
-    print(cur_save_dir)
+    
     #cv2.imwrite(str(cur_save_dir),pano)
 
 if __name__=="__main__":
