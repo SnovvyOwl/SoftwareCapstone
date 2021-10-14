@@ -13,7 +13,7 @@ import tensorflow as tf
 from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_utils
 from waymo_open_dataset import dataset_pb2
 from pathlib import Path
-import multiprocessing
+from PIL import Image
 try:
     tf.enable_eager_execution()
 except:
@@ -183,7 +183,11 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     cur_save_dir = save_path / sequence_name
     cur_save_dir.mkdir(parents=True, exist_ok=True)
     pkl_file = cur_save_dir / ('%s.pkl' % sequence_name)
-
+    #img dir
+    cur_img_dir=cur_save_dir/"img"
+    print(cur_img_dir)
+    cur_img_dir.mkdir(parents=True, exist_ok=True)
+    ######
     sequence_infos = []
     if pkl_file.exists():
         sequence_infos = pickle.load(open(pkl_file, 'rb'))
@@ -215,7 +219,9 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         if has_label:
             annotations = generate_labels(frame)
             info['annos'] = annotations
-        # pano_image=save_to_panoimages(frame,cur_save_dir/('%04d.jpg'%cnt))
+        #save pano image
+        pano_image=save_to_panoimages(frame,cur_img_dir/('%04d.jpg'%cnt))
+        ###
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
         info['num_points_of_each_lidar'] = num_points_of_each_lidar
 
@@ -226,10 +232,15 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
     print('Infos are saved to (sampled_interval=%d): %s' % (sampled_interval, pkl_file))
     return sequence_infos
-
+### 5 image to pano
 def convert_to_panoimages(images):
-    panoimage=images[0]
-    return panoimage
+    front=images[0]
+    front_left=images[1]
+    side_left=images[2]
+    front_right=images[3]
+    side_right=images[4]
+    panorma_image=front
+    return panorma_image
 
 def save_to_panoimages(frame,cur_save_dir):
     import cv2
@@ -238,15 +249,12 @@ def save_to_panoimages(frame,cur_save_dir):
         image5.append(image)
 
     pano=convert_to_panoimages(image5) 
-    # cv2.imwrite('original',cur_save_dir)
-
-
-
-    return NotImplementedError
+    print(cur_save_dir)
+    #cv2.imwrite(str(cur_save_dir),pano)
 
 if __name__=="__main__":
     datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
+    savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
