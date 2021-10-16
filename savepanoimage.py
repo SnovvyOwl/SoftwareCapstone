@@ -193,7 +193,8 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     cur_img_dir=cur_save_dir/"img"
     cur_img_dir.mkdir(parents=True, exist_ok=True)
     print(cur_img_dir)
-    pkl_img_file = cur_img_dir / ('%s.pkl' % sequence_name)
+    pkl_img_file = cur_img_dir / ('camera_%s.pkl' % sequence_name)
+    print(pkl_file)
     ######
     sequence_infos = []
     if pkl_file.exists():
@@ -241,8 +242,9 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
     with open(pkl_file, 'wb') as f:
         pickle.dump(sequence_infos, f)
-    with open(pkl_img_file,"wb") as f:
-        pickle.dump(sequence_camera,f)
+    
+    with open(pkl_img_file,"wb") as file:
+        pickle.dump(sequence_camera,file)
     print('Infos are saved to (sampled_interval=%d): %s' % (sampled_interval, pkl_file))
     return sequence_infos
 
@@ -297,8 +299,8 @@ def generate_camera_labels(frame,sequence_name,cnt):
  
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
+    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-14513674600053761327_749_000_769_000.tfrecord")
+    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
