@@ -223,9 +223,11 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
         if has_label:
             annotations = generate_labels(frame)
+            # camera_annotations=generate_camera_labels(frame)
             info['annos'] = annotations
         #save pano image
-        pano_image=save_images(frame,cur_img_dir,cnt)
+        save_images(frame,cur_img_dir,cnt)
+
         ###
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
         info['num_points_of_each_lidar'] = num_points_of_each_lidar
@@ -260,6 +262,9 @@ def save_camera_calbration_parameter(frame,save_path):
         extrinsics.append(frame[camera_num])
     np.save(str(save_path)+"/extrinsic",extrinsics)
     np.save(str(save_path)+"/intrinsic",intrinsics)
+
+def generate_camera_labels(frame):
+    print(frame.images)
 
 if __name__=="__main__":
     datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-14513674600053761327_749_000_769_000.tfrecord")
