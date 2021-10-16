@@ -188,8 +188,8 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     pkl_file = cur_save_dir / ('%s.pkl' % sequence_name)
     #img dir
     cur_img_dir=cur_save_dir/"img"
-    print(cur_img_dir)
     cur_img_dir.mkdir(parents=True, exist_ok=True)
+    print(cur_img_dir)
     ######
     sequence_infos = []
     if pkl_file.exists():
@@ -242,15 +242,12 @@ def save_images(frame,cur_save_dir,cnt):
     # 'FRONT_INTRINSIC', 'FRONT_EXTRINSIC', 'FRONT_WIDTH', 'FRONT_HEIGHT', 'FRONT_ROLLING_SHUTTER_DIRECTION' 'FRONT_IMAGE', 'FRONT_SDC_VELOCITY', 'FRONT_POSE', 'FRONT_POSE_TIMESTAMP', 'FRONT_ROLLING_SHUTTER_DURATION', 'FRONT_CAMERA_TRIGGER_TIME', 'FRONT_CAMERA_READOUT_DONE_TIME',
     # FRONT_CAM_PROJ_FIRST_RETURN', 'FRONT_CAM_PROJ_SECOND_RETURN',
     frame=frame_utils.convert_frame_to_dict(frame)
-    camera_imgs=[]
-   
-    camera_img_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
+    camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
 
-    for camera_num in camera_img_name: #프레임당이미지 다섯개
-        camera_imgs.append(Image.fromarray(frame[camera_num]))
-    # ('%04d.jpg'%cnt)
-    print(cur_save_dir)
-    # camera_imgs[0].save(cur_save_dir)
+    for camera_num in camera_name: #프레임당이미지 다섯개
+        camera_img=Image.fromarray(frame[camera_num])
+        camera_img.save(str(cur_save_dir)+"/"+camera_num+('_%04d.jpg'%cnt))
+
 def save_camera_calbration_parameter(frame,save_path):
     frame=frame_utils.convert_frame_to_dict(frame)
     intrinsics=[]
@@ -265,11 +262,11 @@ def save_camera_calbration_parameter(frame,save_path):
     np.save(str(save_path)+"/intrinsic",intrinsics)
 
 if __name__=="__main__":
-    # datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
-    # savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
-    # sampled_interval=1
-    # has_label=True
-    # process_single_sequence(datapath,savepath,sampled_interval,has_label)
-    point=np.load("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels/img/intrinsic.npy")
-    print(point)
-    print(point.shape)
+    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-14513674600053761327_749_000_769_000.tfrecord")
+    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
+    sampled_interval=1
+    has_label=True
+    process_single_sequence(datapath,savepath,sampled_interval,has_label)
+    # point=np.load("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels/img/intrinsic.npy")
+    # print(point)
+    # print(point.shape)
