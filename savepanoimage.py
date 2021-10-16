@@ -225,28 +225,28 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
         pose = np.array(frame.pose.transform, dtype=np.float32).reshape(4, 4)
         info['pose'] = pose
-        
+        ###########save image ##########
+        save_images(frame,cur_img_dir,cnt)
+        #################################
         if has_label:
             annotations = generate_labels(frame)
             info['annos'] = annotations
             ########### generate_camera_bbox ###########
             camera= generate_camera_labels(frame)
+            print(camera)
             camera_info["image"]=camera
             ############################################
         camera_info['frame_id']=sequence_name + ('_%03d' % cnt)
-        ###########save image ##########
-        save_images(frame,cur_img_dir,cnt)
-        #################################
-       
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
         info['num_points_of_each_lidar'] = num_points_of_each_lidar
         sequence_infos.append(info)
-   
+        sequence_camera.append(camera_info)
+
     with open(pkl_file, 'wb') as f:
         pickle.dump(sequence_infos, f)
     
-    # with open(pkl_img_file,"wb") as file:
-    #    pickle.dump(sequence_camera,file)
+    with open(pkl_img_file,"wb") as file:
+        pickle.dump(sequence_camera,file)
     print('Infos are saved to (sampled_interval=%d): %s' % (sampled_interval, pkl_file))
     return sequence_infos
 
@@ -287,11 +287,11 @@ def generate_camera_labels(frame):
 def make_label(labels):
     info={}
     boxes=[]
-    for label in labels:
+    for label in labels.labels:
         box=make_Bbox(label)
         boxes.append(box)
-    info["camera"]=labels.name
-    info["label"]=box
+    info["camera"]=labels.name-1
+    info["label"]=boxes
     return info
 
 def make_Bbox(label):
@@ -304,8 +304,8 @@ def make_Bbox(label):
  
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-14513674600053761327_749_000_769_000.tfrecord")
-    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
+    datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
