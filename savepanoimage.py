@@ -6,6 +6,7 @@
 
 import os
 import pickle
+from typing import Sequence
 # from cv2 import useOpenVX
 import numpy as np
 # from numpy.lib.type_check import imag
@@ -186,10 +187,13 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     cur_save_dir = save_path / sequence_name
     cur_save_dir.mkdir(parents=True, exist_ok=True)
     pkl_file = cur_save_dir / ('%s.pkl' % sequence_name)
+    
     #img dir
+    sequence_camera=[]
     cur_img_dir=cur_save_dir/"img"
     cur_img_dir.mkdir(parents=True, exist_ok=True)
     print(cur_img_dir)
+    pkl_img_file = cur_img_dir / ('%s.pkl' % sequence_name)
     ######
     sequence_infos = []
     if pkl_file.exists():
@@ -220,11 +224,12 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
         pose = np.array(frame.pose.transform, dtype=np.float32).reshape(4, 4)
         info['pose'] = pose
-
+        
         if has_label:
             annotations = generate_labels(frame)
-            # camera_annotations=generate_camera_labels(frame)
+            camera_info=generate_camera_labels(frame,sequence_name,cnt)
             info['annos'] = annotations
+        sequence_camera.append(camera_info)
         #save pano image
         save_images(frame,cur_img_dir,cnt)
 
@@ -236,7 +241,8 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
     with open(pkl_file, 'wb') as f:
         pickle.dump(sequence_infos, f)
-
+    with open(pkl_img_file,"wb") as f:
+        pickle.dump(sequence_camera,f)
     print('Infos are saved to (sampled_interval=%d): %s' % (sampled_interval, pkl_file))
     return sequence_infos
 
@@ -263,12 +269,36 @@ def save_camera_calbration_parameter(frame,save_path):
     np.save(str(save_path)+"/extrinsic",extrinsics)
     np.save(str(save_path)+"/intrinsic",intrinsics)
 
-def generate_camera_labels(frame):
-    print(frame.images)
+def generate_camera_labels(frame,sequence_name,cnt):
+    F={}
+    camera=[]
+    camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
+    for labels in frame.projected_lidar_labels:
+        info={}
+        box=[]
+        info["name"]=labels.name
+        for label in labels.labels:
+            print("##################################")
+            print(label.id)
+            # print(label)
+            box2d={}
+            bbox = {"min_x":label.box.center_x - label.box.length / 2,"min_y": label.box.center_y - label.box.width / 2,"max_x": label.box.center_x + label.box.length / 2, "max_y":label.box.center_y + label.box.width / 2}
+            box2d["id"]=label.id
+            box2d["bbox"]=bbox
+            box2d["type"]=WAYMO_CLASSES[label.type]
+            box.append(box2d)
+        info["label"]=box
+        # print(info)
+        camera.append(info)
+    F["frame_id"]= sequence_name + ('_%03d' % cnt)
+    F["camera"]=camera
+    return F
+
+ 
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-14513674600053761327_749_000_769_000.tfrecord")
-    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
+    datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
