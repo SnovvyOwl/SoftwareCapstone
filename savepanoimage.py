@@ -190,7 +190,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     
     #img dir
     sequence_camera=[]
-    camera_info={}
+   
     cur_img_dir=cur_save_dir/"img"
     cur_img_dir.mkdir(parents=True, exist_ok=True)
     pkl_img_file = cur_img_dir / ('camera_%s.pkl' % sequence_name)
@@ -215,7 +215,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         info['point_cloud'] = pc_info
         
         info['frame_id'] = sequence_name + ('_%03d' % cnt)
-        
+        camera_info={}
         image_info = {}
         for j in range(5):
             width = frame.context.camera_calibrations[j].width
@@ -236,6 +236,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
             camera_info["image"]=camera
             # print(camera)
             ############################################
+        # print(sequence_name + ('_%03d' % cnt))
         camera_info['frame_id']=sequence_name + ('_%03d' % cnt)
         # print(camera_info)
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
