@@ -6,7 +6,9 @@
 
 import os
 import pickle
+# from cv2 import useOpenVX
 import numpy as np
+# from numpy.lib.type_check import imag
 from tensorflow._api.v2 import data
 from net.utils import common_utils
 import tensorflow as tf
@@ -14,6 +16,7 @@ from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_u
 from waymo_open_dataset import dataset_pb2
 from pathlib import Path
 from PIL import Image
+
 try:
     tf.enable_eager_execution()
 except:
@@ -200,7 +203,9 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         # print(sequence_name, cnt)
         frame = dataset_pb2.Frame()
         frame.ParseFromString(bytearray(data.numpy()))
-
+        # Camera Parameter Save
+        save_camera_calbration_parameter(frame,cur_img_dir)
+        #######
         info = {}
         pc_info = {'num_features': 5, 'lidar_sequence': sequence_name, 'sample_idx': cnt}
         info['point_cloud'] = pc_info
@@ -220,7 +225,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
             annotations = generate_labels(frame)
             info['annos'] = annotations
         #save pano image
-        pano_image=save_to_panoimages(frame,cur_img_dir/('%04d.jpg'%cnt))
+        pano_image=save_images(frame,cur_img_dir,cnt)
         ###
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
         info['num_points_of_each_lidar'] = num_points_of_each_lidar
@@ -232,37 +237,39 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
     print('Infos are saved to (sampled_interval=%d): %s' % (sampled_interval, pkl_file))
     return sequence_infos
-### 5 image to pano
-def convert_to_panoimages(images):
-    import cv2
-    front=images[0]
-    front_left=images[1]
-    side_left=images[2]
-    front_right=images[3]
-    side_right=images[4]
-    imgfile_front=Image.fromarray((tf.image.decode_jpeg(front.image).numpy()))
-    imgfile_front_left=Image.fromarray((tf.image.decode_jpeg(front_left.image).numpy()))
-    imgfile_side_left=Image.fromarray((tf.image.decode_jpeg(side_left.image).numpy()))
-    imgfile_front_right=Image.fromarray((tf.image.decode_jpeg(front_right.image).numpy()))
-    imgfile_side_right=Image.fromarray((tf.image.decode_jpeg(side_right.image).numpy()))
-    stitcher=cv2.Stitcher.create(cv2.Stitcher_PANORAMA)
-    status, panorama_image=stitcher(imgfile_front,imgfile_front_left)
-    panorama_image.show()
-    # return panorma_image
 
-def save_to_panoimages(frame,cur_save_dir):
-    
-    image5=[]
-    for index, image in enumerate(frame.images): #프레임당이미지 다섯개
-        image5.append(image)
+def save_images(frame,cur_save_dir,cnt):
+    # 'FRONT_INTRINSIC', 'FRONT_EXTRINSIC', 'FRONT_WIDTH', 'FRONT_HEIGHT', 'FRONT_ROLLING_SHUTTER_DIRECTION' 'FRONT_IMAGE', 'FRONT_SDC_VELOCITY', 'FRONT_POSE', 'FRONT_POSE_TIMESTAMP', 'FRONT_ROLLING_SHUTTER_DURATION', 'FRONT_CAMERA_TRIGGER_TIME', 'FRONT_CAMERA_READOUT_DONE_TIME',
+    # FRONT_CAM_PROJ_FIRST_RETURN', 'FRONT_CAM_PROJ_SECOND_RETURN',
+    frame=frame_utils.convert_frame_to_dict(frame)
+    camera_imgs=[]
+   
+    camera_img_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
 
-    pano=convert_to_panoimages(image5) 
-    
-    #cv2.imwrite(str(cur_save_dir),pano)
+    for camera_num in camera_img_name: #프레임당이미지 다섯개
+        camera_imgs.append(Image.fromarray(frame[camera_num]))
+    # ('%04d.jpg'%cnt)
+    print(cur_save_dir)
+    # camera_imgs[0].save(cur_save_dir)
+def save_camera_calbration_parameter(frame,save_path):
+    frame=frame_utils.convert_frame_to_dict(frame)
+    intrinsics=[]
+    extrinsics=[]
+    camera_intrinsic_name=["FRONT_INTRINSIC","FRONT_LEFT_INTRINSIC", "SIDE_LEFT_INTRINSIC" , "FRONT_RIGHT_INTRINSIC","SIDE_RIGHT_INTRINSIC"]
+    camera_extrinsic_name=["FRONT_EXTRINSIC","FRONT_LEFT_EXTRINSIC", "SIDE_LEFT_EXTRINSIC" , "FRONT_RIGHT_EXTRINSIC","SIDE_RIGHT_EXTRINSIC"]
+    for camera_num in camera_intrinsic_name: #프레임당이미지 다섯개
+        intrinsics.append(frame[camera_num])
+    for camera_num in camera_extrinsic_name: #프레임당이미지 다섯개
+        extrinsics.append(frame[camera_num])
+    np.save(str(save_path)+"/extrinsic",extrinsics)
+    np.save(str(save_path)+"/intrinsic",intrinsics)
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
-    sampled_interval=1
-    has_label=True
-    process_single_sequence(datapath,savepath,sampled_interval,has_label)
+    # datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
+    # savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
+    # sampled_interval=1
+    # has_label=True
+    # process_single_sequence(datapath,savepath,sampled_interval,has_label)
+    point=np.load("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels/img/intrinsic.npy")
+    print(point)
+    print(point.shape)
