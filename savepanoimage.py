@@ -234,6 +234,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
             ########### generate_camera_bbox ###########
             camera= generate_camera_labels(frame)
             camera_info["image"]=camera
+            # print(camera)
             ############################################
         camera_info['frame_id']=sequence_name + ('_%03d' % cnt)
         # print(camera_info)
@@ -244,7 +245,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
     with open(pkl_file, 'wb') as f:
         pickle.dump(sequence_infos, f)
-    
+    ###SAVE IMG SEQUCE#####
     with open(pkl_img_file,"wb") as file:
         pickle.dump(sequence_camera,file)
     print('Infos are saved to (sampled_interval=%d): %s' % (sampled_interval, pkl_file))
@@ -288,10 +289,12 @@ def make_label(labels):
     info={}
     boxes=[]
     for label in labels.labels:
+        # print(label)
         box=make_Bbox(label)
         boxes.append(box)
     info["camera"]=labels.name-1
     info["label"]=boxes
+    # print(info) 
     return info
 
 def make_Bbox(label):
@@ -300,12 +303,13 @@ def make_Bbox(label):
     box2d["id"]=label.id
     box2d["bbox"]=bbox
     box2d["type"]=WAYMO_CLASSES[label.type]
+    # print(box2d)
     return box2d
  
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
+    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
