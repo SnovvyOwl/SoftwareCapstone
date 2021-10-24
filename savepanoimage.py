@@ -350,7 +350,6 @@ def make_annotation(labels):
     
     ann['bboxes']=np.array(boxes)
     ann['labels']=np.array(types)
-    print(type(ann['bboxes']))
     return ann
 
 def make_Bbox(label):
