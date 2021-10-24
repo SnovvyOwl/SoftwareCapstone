@@ -220,7 +220,6 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         info['point_cloud'] = pc_info
         
         info['frame_id'] = sequence_name + ('_%03d' % cnt)
-        camera_info={}
         image_info = {}
         for j in range(5):
             width = frame.context.camera_calibrations[j].width
@@ -237,17 +236,21 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
             annotations = generate_labels(frame)
             info['annos'] = annotations
             ########### generate_camera_bbox ###########
-            camera= generate_camera_labels(frame,filename)
-            camera_info["image"]=camera
-            # print(camera)
+            FRONT_camera, FRONT_LEFT_camera, FRONT_RIGHT_camera, SIDE_LEFT_camera, SIDE_RIGHT_camera = generate_camera_labels(frame,filename)
+            
+
             ############################################
         # print(sequence_name + ('_%03d' % cnt))
-        camera_info['frame_id']=sequence_name + ('_%03d' % cnt)
         # print(camera_info)
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
         info['num_points_of_each_lidar'] = num_points_of_each_lidar
         sequence_infos.append(info)
-        sequence_camera.append(camera_info)
+        sequence_camera.append(FRONT_camera)
+        sequence_camera.append(FRONT_LEFT_camera)
+        sequence_camera.append(FRONT_RIGHT_camera)
+        sequence_camera.append(SIDE_LEFT_camera)
+        sequence_camera.append(SIDE_RIGHT_camera )
+        
 
     with open(pkl_file, 'wb') as f:
         pickle.dump(sequence_infos, f)
@@ -313,7 +316,7 @@ def generate_camera_labels(frame,filename):
         camera.append(q.get())
         p[i].join()
        
-    return camera
+    return camera[0],camera[1], camera[2],camera[3],camera[4] 
     
 def make_label(queue,labels,filename):
     anno=make_annotation(labels)
