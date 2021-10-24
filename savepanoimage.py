@@ -298,8 +298,6 @@ def save_camera_calbration_parameter(frame,save_path):
     np.save(str(save_path)+"/extrinsic",extrinsics)
     np.save(str(save_path)+"/intrinsic",intrinsics)
 
-
-
 def generate_camera_labels(frame,filename):
     # camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
     camera=[]
@@ -309,25 +307,6 @@ def generate_camera_labels(frame,filename):
     for labels in frame.projected_lidar_labels:
         labellist.append(labels)
         p.append(Process(target=make_label,args=(q,labels,filename)))
-        # anno=make_annotation(labels)
-        # info={}
-        # info['ann']=anno
-        # info['weight']=1920
-        # if labels.name in [1,2,3]:
-        #     info['height']=1280
-        #     if labels.name==1:
-        #         info['filename']=filename[0]
-        #     elif labels.name==2:
-        #         info['filename']=filename[1]
-        #     elif labels.name==3:
-        #         info['filename']=filename[2]   
-        
-        # else:
-        #     info['height']=886
-        #     if labels.name==4:
-        #         info['filename']=filename[3]
-        #     elif labels.name==5:
-        #         info['filename']=filename[4]
     for i in range(len(p)):
         p[i].start()
     for i in range(len(p)):
@@ -378,41 +357,14 @@ def make_Bbox(label):
     box2d=np.array([label.box.center_x - label.box.length / 2,label.box.center_y - label.box.width / 2,label.box.center_x + label.box.length / 2,label.box.center_y + label.box.width / 2])
     return box2d, WAYMO_CLASSES[label.type]
 
-# def generate_camera_labels(frame):
-#     # camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
-#     camera=[]
-#     for labels in frame.projected_lidar_labels:
-#         label=make_label(labels)
-#         camera.append(label)
-#     return camera
-
-# def make_label(labels):
-#     info={}
-#     boxes=[]
-#     for label in labels.labels:
-#         # print(label)
-#         box=make_Bbox(label)
-#         boxes.append(box)
-#     info["camera"]=labels.name-1
-#     info["label"]=boxes
-#     # print(info) 
-#     return info
-
-# def make_Bbox(label):
-#     box2d={}
-#     bbox = {"min_x":label.box.center_x - label.box.length / 2,"min_y": label.box.center_y - label.box.width / 2,"max_x": label.box.center_x + label.box.length / 2, "max_y":label.box.center_y + label.box.width / 2}
-#     box2d["id"]=label.id
-#     box2d["bbox"]=bbox
-#     box2d["type"]=WAYMO_CLASSES[label.type]
-#     # print(box2d)
-#     return box2d
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
+    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
     # point=np.load("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels/img/intrinsic.npy")
     # print(point)
     # print(point.shape)
+    
