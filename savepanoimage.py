@@ -7,16 +7,21 @@
 import os
 import pickle
 from typing import Sequence
+from google.protobuf.descriptor import FieldDescriptor
 # from cv2 import useOpenVX
 import numpy as np
+from numpy.lib.index_tricks import ndenumerate
+from six import b
 # from numpy.lib.type_check import imag
 from tensorflow._api.v2 import data
 from net.utils import common_utils
 import tensorflow as tf
 from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_utils
 from waymo_open_dataset import dataset_pb2
+
 from pathlib import Path
 from PIL import Image
+from multiprocessing import Process ,Queue
 
 try:
     tf.enable_eager_execution()
@@ -226,13 +231,13 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         pose = np.array(frame.pose.transform, dtype=np.float32).reshape(4, 4)
         info['pose'] = pose
         ###########save image ##########
-        save_images(frame,cur_img_dir,cnt)
+        filename=save_images(frame,sequence_name,cur_img_dir,cnt)
         #################################
         if has_label:
             annotations = generate_labels(frame)
             info['annos'] = annotations
             ########### generate_camera_bbox ###########
-            camera= generate_camera_labels(frame)
+            camera= generate_camera_labels(frame,filename)
             camera_info["image"]=camera
             # print(camera)
             ############################################
@@ -255,22 +260,37 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
 #################################################################################
 ##### WRITTEN BY SNOWYOWL
-def save_images(frame,cur_save_dir,cnt):
+def save_images(frame,sequence_name,cur_save_dir,cnt):
     # 'FRONT_INTRINSIC', 'FRONT_EXTRINSIC', 'FRONT_WIDTH', 'FRONT_HEIGHT', 'FRONT_ROLLING_SHUTTER_DIRECTION' 'FRONT_IMAGE', 'FRONT_SDC_VELOCITY', 'FRONT_POSE', 'FRONT_POSE_TIMESTAMP', 'FRONT_ROLLING_SHUTTER_DURATION', 'FRONT_CAMERA_TRIGGER_TIME', 'FRONT_CAMERA_READOUT_DONE_TIME',
     # FRONT_CAM_PROJ_FIRST_RETURN', 'FRONT_CAM_PROJ_SECOND_RETURN',
-    frame=frame_utils.convert_frame_to_dict(frame)
-    camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
+    
 
+    frame=frame_utils.convert_frame_to_dict(frame)
+    camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE","FRONT_RIGHT_IMAGE", "SIDE_LEFT_IMAGE","SIDE_RIGHT_IMAGE"]
+    filename=[]
+    path=[]
+    p=[]
     for camera_num in camera_name: #프레임당이미지 다섯개
-        camera_img=Image.fromarray(frame[camera_num])
-        camera_img.save(str(cur_save_dir)+"/"+camera_num+('_%04d.jpg'%cnt))
+        # camera_img.save(str(cur_save_dir)+"/"+sequence_name+"_"+camera_num+('_%04d.jpg'%cnt))
+        path=str(cur_save_dir)+"/"+sequence_name+"_"+camera_num+('_%04d.jpg'%cnt)
+        filename.append(str(sequence_name+"_"+camera_num+('_%04d.jpg'%cnt)))
+        p.append(Process(target=save_image,args=(frame[camera_num],path)))
+    for i in range(5):
+        p[i].start()
+    for i in range(5):
+        p[i].join()
+    return  filename
+
+def save_image(imagefile,path):
+    camera_img=Image.fromarray(imagefile)
+    camera_img.save(path)
 
 def save_camera_calbration_parameter(frame,save_path):
     frame=frame_utils.convert_frame_to_dict(frame)
     intrinsics=[]
     extrinsics=[]
-    camera_intrinsic_name=["FRONT_INTRINSIC","FRONT_LEFT_INTRINSIC", "SIDE_LEFT_INTRINSIC" , "FRONT_RIGHT_INTRINSIC","SIDE_RIGHT_INTRINSIC"]
-    camera_extrinsic_name=["FRONT_EXTRINSIC","FRONT_LEFT_EXTRINSIC", "SIDE_LEFT_EXTRINSIC" , "FRONT_RIGHT_EXTRINSIC","SIDE_RIGHT_EXTRINSIC"]
+    camera_intrinsic_name=["FRONT_INTRINSIC","FRONT_LEFT_INTRINSIC", "FRONT_RIGHT_INTRINSIC","SIDE_LEFT_INTRINSIC" , "SIDE_RIGHT_INTRINSIC"]
+    camera_extrinsic_name=["FRONT_EXTRINSIC","FRONT_LEFT_EXTRINSIC", "FRONT_RIGHT_EXTRINSIC","SIDE_LEFT_EXTRINSIC" , "SIDE_RIGHT_EXTRINSIC"]
     for camera_num in camera_intrinsic_name: #프레임당이미지 다섯개
         intrinsics.append(frame[camera_num])
     for camera_num in camera_extrinsic_name: #프레임당이미지 다섯개
@@ -278,35 +298,114 @@ def save_camera_calbration_parameter(frame,save_path):
     np.save(str(save_path)+"/extrinsic",extrinsics)
     np.save(str(save_path)+"/intrinsic",intrinsics)
 
-def generate_camera_labels(frame):
+
+
+def generate_camera_labels(frame,filename):
     # camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
     camera=[]
+    labellist=[]
+    q = Queue()
+    p=[]
     for labels in frame.projected_lidar_labels:
-        label=make_label(labels)
-        camera.append(label)
+        labellist.append(labels)
+        p.append(Process(target=make_label,args=(q,labels,filename)))
+        # anno=make_annotation(labels)
+        # info={}
+        # info['ann']=anno
+        # info['weight']=1920
+        # if labels.name in [1,2,3]:
+        #     info['height']=1280
+        #     if labels.name==1:
+        #         info['filename']=filename[0]
+        #     elif labels.name==2:
+        #         info['filename']=filename[1]
+        #     elif labels.name==3:
+        #         info['filename']=filename[2]   
+        
+        # else:
+        #     info['height']=886
+        #     if labels.name==4:
+        #         info['filename']=filename[3]
+        #     elif labels.name==5:
+        #         info['filename']=filename[4]
+    for i in range(len(p)):
+        p[i].start()
+    for i in range(len(p)):
+        camera.append(q.get())
+        p[i].join()
+      
     return camera
-
-def make_label(labels):
+    
+def make_label(queue,labels,filename):
+    anno=make_annotation(labels)
     info={}
+    info['ann']=anno
+    info['weight']=1920
+    if labels.name in [1,2,3]:
+        info['height']=1280
+        if labels.name==1:
+            info['filename']=filename[0]
+        elif labels.name==2:
+            info['filename']=filename[1]
+        elif labels.name==3:
+            info['filename']=filename[2]   
+        
+    else:
+        info['height']=886
+        if labels.name==4:
+            info['filename']=filename[3]
+        elif labels.name==5:
+            info['filename']=filename[4]
+    queue.put(info)
+    
+
+def make_annotation(labels):
+    types=[]
     boxes=[]
+    ann={}
     for label in labels.labels:
         # print(label)
-        box=make_Bbox(label)
+        box, cls_type =make_Bbox(label)
         boxes.append(box)
-    info["camera"]=labels.name-1
-    info["label"]=boxes
-    # print(info) 
-    return info
+        types.append(cls_type)
+ 
+    ann['bboxes']=boxes
+    ann['labels']=types
+    
+    return ann
 
 def make_Bbox(label):
-    box2d={}
-    bbox = {"min_x":label.box.center_x - label.box.length / 2,"min_y": label.box.center_y - label.box.width / 2,"max_x": label.box.center_x + label.box.length / 2, "max_y":label.box.center_y + label.box.width / 2}
-    box2d["id"]=label.id
-    box2d["bbox"]=bbox
-    box2d["type"]=WAYMO_CLASSES[label.type]
-    # print(box2d)
-    return box2d
- 
+    box2d=np.array([label.box.center_x - label.box.length / 2,label.box.center_y - label.box.width / 2,label.box.center_x + label.box.length / 2,label.box.center_y + label.box.width / 2])
+    return box2d, WAYMO_CLASSES[label.type]
+
+# def generate_camera_labels(frame):
+#     # camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
+#     camera=[]
+#     for labels in frame.projected_lidar_labels:
+#         label=make_label(labels)
+#         camera.append(label)
+#     return camera
+
+# def make_label(labels):
+#     info={}
+#     boxes=[]
+#     for label in labels.labels:
+#         # print(label)
+#         box=make_Bbox(label)
+#         boxes.append(box)
+#     info["camera"]=labels.name-1
+#     info["label"]=boxes
+#     # print(info) 
+#     return info
+
+# def make_Bbox(label):
+#     box2d={}
+#     bbox = {"min_x":label.box.center_x - label.box.length / 2,"min_y": label.box.center_y - label.box.width / 2,"max_x": label.box.center_x + label.box.length / 2, "max_y":label.box.center_y + label.box.width / 2}
+#     box2d["id"]=label.id
+#     box2d["bbox"]=bbox
+#     box2d["type"]=WAYMO_CLASSES[label.type]
+#     # print(box2d)
+#     return box2d
 
 if __name__=="__main__":
     datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels.tfrecord")
