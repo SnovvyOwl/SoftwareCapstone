@@ -333,7 +333,7 @@ def generate_camera_labels(frame,filename):
     for i in range(len(p)):
         camera.append(q.get())
         p[i].join()
-      
+       
     return camera
     
 def make_label(queue,labels,filename):
@@ -368,10 +368,10 @@ def make_annotation(labels):
         box, cls_type =make_Bbox(label)
         boxes.append(box)
         types.append(cls_type)
- 
-    ann['bboxes']=boxes
-    ann['labels']=types
     
+    ann['bboxes']=np.array(boxes)
+    ann['labels']=np.array(types)
+    print(type(ann['bboxes']))
     return ann
 
 def make_Bbox(label):
@@ -408,8 +408,8 @@ def make_Bbox(label):
 #     return box2d
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
+    datapath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/raw_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
