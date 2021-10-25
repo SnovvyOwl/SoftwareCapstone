@@ -242,8 +242,8 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
             ############################################
         # print(sequence_name + ('_%03d' % cnt))
         # print(camera_info)
-        num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
-        info['num_points_of_each_lidar'] = num_points_of_each_lidar
+        # num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
+        # info['num_points_of_each_lidar'] = num_points_of_each_lidar
         sequence_infos.append(info)
         sequence_camera.append(FRONT_camera)
         sequence_camera.append(FRONT_LEFT_camera)
@@ -261,7 +261,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     return sequence_infos
 
 
-#################################################################################
+#################################################################################0
 ##### WRITTEN BY SNOWYOWL
 def save_images(frame,sequence_name,cur_save_dir,cnt):
     # 'FRONT_INTRINSIC', 'FRONT_EXTRINSIC', 'FRONT_WIDTH', 'FRONT_HEIGHT', 'FRONT_ROLLING_SHUTTER_DIRECTION' 'FRONT_IMAGE', 'FRONT_SDC_VELOCITY', 'FRONT_POSE', 'FRONT_POSE_TIMESTAMP', 'FRONT_ROLLING_SHUTTER_DURATION', 'FRONT_CAMERA_TRIGGER_TIME', 'FRONT_CAMERA_READOUT_DONE_TIME',
