@@ -273,14 +273,13 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     cur_save_dir = save_path / sequence_name
     cur_save_dir.mkdir(parents=True, exist_ok=True)
     pkl_file = cur_save_dir / ('%s.pkl' % sequence_name)
-    
-    #img dir
+    #########################
+    #INCLUDE by Seongwon LEE
     sequence_camera=[]
-   
     cur_img_dir=cur_save_dir/"img"
     cur_img_dir.mkdir(parents=True, exist_ok=True)
     pkl_img_file = cur_img_dir / ('camera_%s.pkl' % sequence_name)
-    ######
+    ############################
     sequence_infos = []
     if pkl_file.exists():
         sequence_infos = pickle.load(open(pkl_file, 'rb'))
@@ -294,6 +293,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         frame = dataset_pb2.Frame()
         frame.ParseFromString(bytearray(data.numpy()))
         ########## Camera Parameter Save ##################
+        #INCLUDE by Seongwon LEE
         save_camera_calbration_parameter(frame,cur_img_dir)
         ###################################################
         info = {}
@@ -311,25 +311,26 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         pose = np.array(frame.pose.transform, dtype=np.float32).reshape(4, 4)
         info['pose'] = pose
         ###########save image ##########
+        #INCLUDE by Seongwon LEE
         filename=save_images(frame,sequence_name,cur_img_dir,cnt)
         #################################
         if has_label:
             annotations = generate_labels(frame)
             info['annos'] = annotations
             ########### generate_camera_bbox ###########
+            #INCLUDE by Seongwon LEE
             FRONT_camera, FRONT_LEFT_camera, FRONT_RIGHT_camera, SIDE_LEFT_camera, SIDE_RIGHT_camera = generate_camera_labels(frame,filename)
-            ############################################
-        # print(sequence_name + ('_%03d' % cnt))
-        # print(camera_info)
-        num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
-        info['num_points_of_each_lidar'] = num_points_of_each_lidar
+  
         sequence_infos.append(info)
         sequence_camera.append(FRONT_camera)
         sequence_camera.append(FRONT_LEFT_camera)
         sequence_camera.append(FRONT_RIGHT_camera)
         sequence_camera.append(SIDE_LEFT_camera)
         sequence_camera.append(SIDE_RIGHT_camera )
-        
+
+        ############################################
+        num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
+        info['num_points_of_each_lidar'] = num_points_of_each_lidar
         # print(sequence_camera)
     with open(pkl_file, 'wb') as f:
         pickle.dump(sequence_infos, f)
