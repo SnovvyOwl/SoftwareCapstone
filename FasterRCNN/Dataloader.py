@@ -10,7 +10,7 @@ from mmdet.datasets.custom import CustomDataset
 @DATASETS.register_module()
 class WaymoDataset(CustomDataset):
 
-    CLASSES = ('Car', 'Pedestrian', 'Cyclist')
+    CLASSES = ('Vehicle', 'Pedestrian', 'Cyclist')
 
     def load_annotations(self, ann_file):
         cat2label = {k: i for i, k in enumerate(self.CLASSES)}

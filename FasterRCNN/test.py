@@ -19,46 +19,20 @@ labels_to_names_seq = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorbike', 4: '
                        61: 'toilet', 62: 'tvmonitor', 63: 'laptop', 64: 'mouse', 65: 'remote', 66: 'keyboard', 67: 'cell phone', 68: 'microwave', 69: 'oven', 70: 'toaster',
                        71: 'sink', 72: 'refrigerator', 73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier', 79: 'toothbrush'}
 
-
-def get_detected_img(model, img_array,  score_threshold=0.3, is_print=True):
-    # 인자로 들어온 image_array를 복사.
-    draw_img = img_array.copy()
-    bbox_color = (0, 255, 0)
-    text_color = (0, 0, 255)
-
-    # model과 image array를 입력 인자로 inference detection 수행하고 결과를 results로 받음.
-    # results는 80개의 2차원 array(shape=(오브젝트갯수, 5))를 가지는 list.
-    results = inference_detector(model, img_array)
-
-    # 80개의 array원소를 가지는 results 리스트를 loop를 돌면서 개별 2차원 array들을 추출하고 이를 기반으로 이미지 시각화
-    # results 리스트의 위치 index가 바로 COCO 매핑된 Class id. 여기서는 result_ind가 class id
-    # 개별 2차원 array에 오브젝트별 좌표와 class confidence score 값을 가짐.
-    for result_ind, result in enumerate(results):
-        # 개별 2차원 array의 row size가 0 이면 해당 Class id로 값이 없으므로 다음 loop로 진행.
-        if len(result) == 0:
-            continue
-
-        # 2차원 array에서 5번째 컬럼에 해당하는 값이 score threshold이며 이 값이 함수 인자로 들어온 score_threshold 보다 낮은 경우는 제외.
-        result_filtered = result[np.where(result[:, 4] > score_threshold)]
-
-        # 해당 클래스 별로 Detect된 여러개의 오브젝트 정보가 2차원 array에 담겨 있으며, 이 2차원 array를 row수만큼 iteration해서 개별 오브젝트의 좌표값 추출.
-        for i in range(len(result_filtered)):
-            # 좌상단, 우하단 좌표 추출.
-            left = int(result_filtered[i, 0])
-            top = int(result_filtered[i, 1])
-            right = int(result_filtered[i, 2])
-            bottom = int(result_filtered[i, 3])
-            caption = "{}: {:.4f}".format(
-                labels_to_names_seq[result_ind], result_filtered[i, 4])
-            cv2.rectangle(draw_img, (left, top), (right, bottom),
-                          color=bbox_color, thickness=2)
-            cv2.putText(draw_img, caption, (int(left), int(top - 7)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.37, text_color, 1)
-            if is_print:
-                print(caption)
-        results=np.array(results)
-        return draw_img, results
-
+class FastRCNN_eval(object):
+    def __init__(self,config,checkpoint,rootdir):
+        self.cfg=config
+        self.sequence_list = os.listdir(rootdir)
+        self.model=init_detector(config, checkpoint, device='cuda:0')
+        
+    def save_result(self,sequence):
+        image_list = os.listdir("./data/waymo/waymo_processed_data/"+sequence+"/img/")
+        for file in image_list:
+            if file[-1] == "g":
+                img_name = "./data/waymo/waymo_processed_data/"+sequence+"/img/"+file
+                result=inference_detector(self.model, img_name)
+                self.model.show_result(img_name, result, score_thr=0.3,show=False,wait_time=0,win_name=file,bbox_color=(72, 101, 241),text_color=(72, 101, 241),out_file="./FasterRCNN/output/"+file[0:-4]+".jpg")
+                np.save("./FasterRCNN/output/"+file[0:-4]+".npy",result)
 
 if __name__ == "__main__":
     # Choose to use a config and initialize the detector
@@ -75,8 +49,7 @@ if __name__ == "__main__":
         for file in image_list:
             if file[-1] == "g":
                 img_name = "./data/waymo/waymo_processed_data/"+sequence+"/img/"+file
-                img = cv2.imread(img_name)
-                detected ,result = get_detected_img(model, img)
-                detected=Image.fromarray(detected)
+                result=inference_detector(model, img_name)
+                model.show_result(img_name, result, score_thr=0.3,show=False,wait_time=0,win_name=file,bbox_color=(72, 101, 241),text_color=(72, 101, 241),out_file="./FasterRCNN/output/"+file[0:-4]+".jpg")
                 np.save("./FasterRCNN/output/"+file[0:-4]+".npy",result)
-                detected.save("./FasterRCNN/output/"+file[0:-4]+".jpg")
+
