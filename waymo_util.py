@@ -325,8 +325,8 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
             ########################################################################################
             #******generate_camera_bbox                 INCLUDE by Seongwon LEE******************************#
             FRONT_camera, FRONT_LEFT_camera, FRONT_RIGHT_camera, SIDE_LEFT_camera, SIDE_RIGHT_camera = generate_camera_labels(frame,filename)
-  
-        sequence_infos.append(info)
+        print(sequence_camera)
+        
         sequence_camera.append(FRONT_camera)
         sequence_camera.append(FRONT_LEFT_camera)
         sequence_camera.append(FRONT_RIGHT_camera)
@@ -336,6 +336,7 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
         info['num_points_of_each_lidar'] = num_points_of_each_lidar
+        sequence_infos.append(info)
         # print(sequence_camera)
     with open(pkl_file, 'wb') as f:
         pickle.dump(sequence_infos, f)
