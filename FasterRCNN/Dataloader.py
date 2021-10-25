@@ -10,7 +10,7 @@ from mmdet.datasets.custom import CustomDataset
 @DATASETS.register_module()
 class WaymoDataset(CustomDataset):
 
-    CLASSES = ('Vehicle', 'Pedestrian', 'Cyclist')
+    CLASSES = ['Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 
     def load_annotations(self, ann_file):
         cat2label = {k: i for i, k in enumerate(self.CLASSES)}
@@ -20,7 +20,7 @@ class WaymoDataset(CustomDataset):
         data_infos = []
         # convert annotations to middle format
         for image_id in image_list:
-            filename = f'{self.img_prefix}/{image_id}.jpeg'
+            filename = f'{self.img_prefix}/{image_id}.jpg'
             image = mmcv.imread(filename)
             height, width = image.shape[:2]
     
