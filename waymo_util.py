@@ -1,7 +1,7 @@
 import os
 import pickle
 import numpy as np
-from net.utils import common_utils
+from ...utils import common_utils
 import tensorflow as tf
 from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_utils
 from waymo_open_dataset import dataset_pb2
