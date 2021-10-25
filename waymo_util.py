@@ -1,20 +1,10 @@
 import os
 import pickle
-from typing import Sequence
-from google.protobuf.descriptor import FieldDescriptor
-# from cv2 import useOpenVX
 import numpy as np
-from numpy.lib.index_tricks import ndenumerate
-from six import b
-# from numpy.lib.type_check import imag
-from tensorflow._api.v2 import data
-from net.utils import common_utils
+from ...utils import common_utils
 import tensorflow as tf
 from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_utils
 from waymo_open_dataset import dataset_pb2
-
-from pathlib import Path
-from PIL import Image
 
 try:
     tf.enable_eager_execution()
@@ -22,7 +12,6 @@ except:
     pass
 
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
-
 #################################################################################0
 ##### WRITTEN BY SNOWYOWL
 def save_images(frame,sequence_name,cur_save_dir,cnt):
@@ -111,6 +100,7 @@ def make_Bbox(label):
 #**************************************************************************************#
 ########################################################################################
 
+
 # OpenPCDet PyTorch Dataloader and Evaluation Tools for Waymo Open Dataset
 # Reference https://github.com/open-mmlab/OpenPCDet
 # Written by Shaoshuai Shi, Chaoxu Guo
@@ -167,7 +157,6 @@ def convert_range_image_to_point_cloud(frame, range_images, camera_projections, 
             [camera_projection_from_first_return, camera_projection_from_second_return]}.
         range_image_top_pose: range image pixel pose for top lidar.
         ri_index: 0 for the first return, 1 for the second return.
-
     Returns:
         points: {[N, 3]} list of 3d lidar points of length 5 (number of lidars).
         cp_points: {[N, 6]} list of camera projections of length 5 (number of lidars).
@@ -267,7 +256,7 @@ def save_lidar_points(frame, cur_save_path):
 def process_single_sequence(sequence_file, save_path, sampled_interval, has_label=True):
     sequence_name = os.path.splitext(os.path.basename(sequence_file))[0]
 
-    print('Load record (sampled_interval=%d): %s' % (sampled_interval, sequence_name))
+    # print('Load record (sampled_interval=%d): %s' % (sampled_interval, sequence_name))
     if not sequence_file.exists():
         print('NotFoundError: %s' % sequence_file)
         return []
@@ -276,7 +265,6 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     cur_save_dir = save_path / sequence_name
     cur_save_dir.mkdir(parents=True, exist_ok=True)
     pkl_file = cur_save_dir / ('%s.pkl' % sequence_name)
-   
     ########################################################################################
     #************INCLUDE by Seongwon LEE***************************************************#
     sequence_camera=[]
@@ -300,11 +288,11 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         #******Camera Parameter Save      INCLUDE by Seongwon LEE******************************#
         save_camera_calbration_parameter(frame,cur_img_dir)
         ########################################################################################
-      
+
         info = {}
         pc_info = {'num_features': 5, 'lidar_sequence': sequence_name, 'sample_idx': cnt}
         info['point_cloud'] = pc_info
-        
+
         info['frame_id'] = sequence_name + ('_%03d' % cnt)
         image_info = {}
         for j in range(5):
@@ -331,10 +319,11 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         sequence_camera.append(SIDE_LEFT_camera)
         sequence_camera.append(SIDE_RIGHT_camera)
         #######################################################################################################################
-        
         num_points_of_each_lidar = save_lidar_points(frame, cur_save_dir / ('%04d.npy' % cnt))
         info['num_points_of_each_lidar'] = num_points_of_each_lidar
+
         sequence_infos.append(info)
+
     with open(pkl_file, 'wb') as f:
         pickle.dump(sequence_infos, f)
     ###SAVE IMG SEQUCE#####
@@ -342,14 +331,3 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         pickle.dump(sequence_camera,file)
     print('Infos are saved to (sampled_interval=%d): %s' % (sampled_interval, pkl_file))
     return sequence_infos
-
-if __name__=="__main__":
-    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
-    sampled_interval=1
-    has_label=True
-    process_single_sequence(datapath,savepath,sampled_interval,has_label)
-    # point=np.load("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels/img/intrinsic.npy")
-    # print(point)
-    # print(point.shape)
-    
