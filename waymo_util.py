@@ -1,7 +1,7 @@
 import os
 import pickle
 import numpy as np
-from .net import common_utils
+from net.utils import common_utils
 import tensorflow as tf
 from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_utils
 from waymo_open_dataset import dataset_pb2
@@ -331,3 +331,13 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
         pickle.dump(sequence_camera,file)
     print('Infos are saved to (sampled_interval=%d): %s' % (sampled_interval, pkl_file))
     return sequence_infos
+
+if __name__=="__main__":
+    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
+    sampled_interval=1
+    has_label=True
+    process_single_sequence(datapath,savepath,sampled_interval,has_label)
+    # point=np.load("/home/seongwonlee/SoftwareCapstone/data/waymo/waymo_processed_data/segment-2273990870973289942_4009_680_4029_680_with_camera_labels/img/intrinsic.npy")
+    # print(point)
+    # print(point.shape)
