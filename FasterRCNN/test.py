@@ -1,15 +1,7 @@
-from re import S
-from mmcv import image
 from mmdet.apis import init_detector, inference_detector
 import os
-import mmcv
 import numpy as np
-import cv2
-from mmdet.apis.inference import show_result_pyplot
-from PIL import Image
-import matplotlib.pyplot as plt
-from numpy.core.records import array
-
+import pickle
 labels_to_names_seq = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorbike', 4: 'aeroplane', 5: 'bus', 6: 'train', 7: 'truck', 8: 'boat', 9: 'traffic light', 10: 'fire hydrant',
                        11: 'stop sign', 12: 'parking meter', 13: 'bench', 14: 'bird', 15: 'cat', 16: 'dog', 17: 'horse', 18: 'sheep', 19: 'cow', 20: 'elephant',
                        21: 'bear', 22: 'zebra', 23: 'giraffe', 24: 'backpack', 25: 'umbrella', 26: 'handbag', 27: 'tie', 28: 'suitcase', 29: 'frisbee', 30: 'skis',
@@ -22,34 +14,41 @@ labels_to_names_seq = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorbike', 4: '
 class FastRCNN_eval(object):
     def __init__(self,config,checkpoint,rootdir):
         self.cfg=config
+        self.root=rootdir
         self.sequence_list = os.listdir(rootdir)
+        # initialize the detector
         self.model=init_detector(config, checkpoint, device='cuda:0')
+        gtdir=self.sequence_list.find(".pkl")
+        self.gt=pickle.load(open('my_pickle.pkl','rb'))
+
+    def save_result(self,outputdir,saveimage=True):
+        for sequence in self.sequence_list:
+            image_list = os.listdir(self.root+sequence+"/img/")
+            for file in image_list:
+                if file[-1] == "g":
+                    img_name = self.root+sequence+"/img/"+file
+                    result=inference_detector(self.model, img_name)
+                    if saveimage:
+                        self.model.show_result(img_name, result, score_thr=0.3,show=False,wait_time=0,win_name=file,bbox_color=(72, 101, 241),text_color=(72, 101, 241),out_file=outputdir+file[0:-4]+".jpg")
+                    np.save(outputdir+file[0:-4]+".npy",result)
+    
+    def compare_GT(output,resultpath,gtpath):
+        resultpath=os.listdir(resultpath)
+        resultpath=resultpath.sort()
+        print
+        print(resultpath)
+        return NotImplementedError
         
-    def save_result(self,sequence):
-        image_list = os.listdir("./data/waymo/waymo_processed_data/"+sequence+"/img/")
-        for file in image_list:
-            if file[-1] == "g":
-                img_name = "./data/waymo/waymo_processed_data/"+sequence+"/img/"+file
-                result=inference_detector(self.model, img_name)
-                self.model.show_result(img_name, result, score_thr=0.3,show=False,wait_time=0,win_name=file,bbox_color=(72, 101, 241),text_color=(72, 101, 241),out_file="./FasterRCNN/output/"+file[0:-4]+".jpg")
-                np.save("./FasterRCNN/output/"+file[0:-4]+".npy",result)
 
 if __name__ == "__main__":
     # Choose to use a config and initialize the detector
     config = './FasterRCNN/configs/faster_rcnn/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco.py'
     # Setup a checkpoint file to load
     checkpoint = './FasterRCNN/checkpoints/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco_20210524_124528-26c63de6.pth'
-    # initialize the detector
-    model = init_detector(config, checkpoint, device='cuda:0')
     rootdir = "./data/waymo/waymo_processed_data/"
-    sequence_list = os.listdir(rootdir)
-    for sequence in sequence_list:
-        image_list = os.listdir(
-            "./data/waymo/waymo_processed_data/"+sequence+"/img/")
-        for file in image_list:
-            if file[-1] == "g":
-                img_name = "./data/waymo/waymo_processed_data/"+sequence+"/img/"+file
-                result=inference_detector(model, img_name)
-                model.show_result(img_name, result, score_thr=0.3,show=False,wait_time=0,win_name=file,bbox_color=(72, 101, 241),text_color=(72, 101, 241),out_file="./FasterRCNN/output/"+file[0:-4]+".jpg")
-                np.save("./FasterRCNN/output/"+file[0:-4]+".npy",result)
+    outputdir="./FasterRCNN/output/"
+    gtcompare="./FasterRCNN/output/gt/"
+    eval=FastRCNN_eval(config,checkpoint,rootdir)
+    # eval.save_result(outputdir)
 
+    eval.compare_GT(gtcompare,outputdir,"/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/img/camera_segment-1024360143612057520_3580_000_3600_000_with_camera_labels.pkl")

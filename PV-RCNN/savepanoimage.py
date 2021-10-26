@@ -361,8 +361,8 @@ def make_Bbox(label):
 
 
 if __name__=="__main__":
-    datapath=Path("/home/seongwon/SoftwareCapstone/data/waymo/raw_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels.tfrecord")
-    savepath=Path("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data")
+    datapath=Path("/home/seongwon/SoftwareCapstone/PV-RCNN/data/waymo/raw_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels.tfrecord")
+    savepath=Path("/home/seongwon/SoftwareCapstone/PV-RCNN/data/waymo/waymo_processed_data")
     sampled_interval=1
     has_label=True
     process_single_sequence(datapath,savepath,sampled_interval,has_label)
