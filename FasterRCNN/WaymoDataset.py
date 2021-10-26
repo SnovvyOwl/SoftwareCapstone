@@ -44,11 +44,35 @@ class WaymoDataset(torch.utils.data.Dataset):
         
         return self.front_anno+self.front_left_anno+self.front_right_anno+self.side_left_anno+self.side_right_anno
     
-    def __getitem__(self,idx):
+    def __getitem__(self,idx): 
         img_path = os.path.join(self.img_path, self.imgs[idx])
+        obj_ids=[]
         img=Image.open(img_path).convert("RGB")
-        target=self.anno[idx]
-        
+        boxes = torch.as_tensor(self.anno[idx]["ann"]["bboxes"], dtype=torch.float32)
+        for label in self.anno[idx]["ann"]["labels"]:
+            if label=='unknown':
+                obj_ids.append(0)
+            elif label=='Vehicle':
+                obj_ids.append(1)
+            elif label=='Pedestrian':
+                obj_ids.append(2)
+            elif label=='Sign':
+                obj_ids.append(3)
+            elif label=='Cyclist':
+                obj_ids.append(4)
+        num_objs = len(obj_ids)
+        image_id = torch.tensor([idx])
+        labels = torch.as_tensor(obj_ids, dtype=torch.int64)
+        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        iscrowd = torch.zeros(len(obj_ids,), dtype=torch.int64)
+        target={}
+        target["boxes"] = boxes
+        target["boxes"] = boxes
+        target["labels"] = labels
+        target["image_id"] = image_id
+        target["area"] = area
+        target["iscrowd"] = iscrowd
+
         return img, target
         
 if __name__=="__main__":
