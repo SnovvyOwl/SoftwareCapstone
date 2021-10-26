@@ -1,6 +1,6 @@
 import numpy as np
 import pickle
-from mmdet.apis import inference_detector
+from mmdet.apis import inference_detector ,init_detector
 import os
 import mmdet.core.visualization
 from PIL import Image
@@ -15,7 +15,8 @@ labels_to_names_seq = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorbike', 4: '
                        71: 'sink', 72: 'refrigerator', 73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier', 79: 'toothbrush'}
 
 WAYMO_CLASSES = {  'Vehicle':0, 'Pedestrian':1,  'Sign':2, 'Cyclist':3}
-WAYMO_CLASS = {0:'Vehicle', 1: 'Pedestrian',  2:'Sign', 3:'Cyclist'}
+
+WAYMO_CLASS = ['Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 class FastRCNN_sequence(object):
     def __init__(self,rootdir,seq,outputdir,saveimg=True,_gtcompare=True):
         self.sequence=seq
@@ -59,11 +60,12 @@ class FastRCNN_sequence(object):
             if file[-1] == "g":
                 img_name = self.root+self.sequence+"/img/"+file
                 result=inference_detector(model, img_name)
-                # if  self.saveflag:
-                    # self.model.show_result(img_name, result, score_thr=0.3,show=False,wait_time=0,win_name=file,bbox_color=(72, 101, 241),text_color=(72, 101, 241),out_file=self.outdir+file[0:-4]+".jpg")
-                # np.save(self.outdir+file[0:-4]+".npy",result)
+                if  self.saveflag:
+                    model.show_result(img_name, result, score_thr=0.3,show=False,wait_time=0,win_name=file,bbox_color=(72, 101, 241),text_color=(72, 101, 241),out_file=self.outdir+file[0:-4]+".jpg")
+                np.save(self.outdir+file[0:-4]+".npy",result)
                 if self.gtcompare:
                     self.compare_GT(img_name,result,file)
+                    
                    
     def compare_GT(self,img_name,result,file):
         self.load_gt()
@@ -82,7 +84,7 @@ class FastRCNN_sequence(object):
                 label.append(int(WAYMO_CLASSES[change]))
             GT["gt_labels"]=np.array(label)
 
-            img=mmdet.core.visualization.imshow_gt_det_bboxes(img_name,GT,result,WAYMO_CLASS,0.3)
+            # img=mmdet.core.visualization.imshow_gt_det_bboxes(img_name,GT,result,WAYMO_CLASS,0.3)
             # img=Image.fromarray(img)
 
         elif camera_num=="FRONT_LEFT_IMAGE":
@@ -98,7 +100,7 @@ class FastRCNN_sequence(object):
 
 
 if __name__=="__main__":
-    from mmdet.apis import init_detector
+    
     # Choose to use a config and initialize the detector
     config = './FasterRCNN/configs/faster_rcnn/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco.py'
     # Setup a checkpoint file to load
