@@ -1,16 +1,16 @@
 import os
-import numpy as np
 import torch
 from PIL import Image
 import pickle
-from multiprocessing import Queue, Process, Pool
+import numpy as np
 
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 
 class WaymoDataset(torch.utils.data.Dataset):
-    def __init__(self,root,segment):
+    def __init__(self,root,segment,transforms):
         self.root=root
         self.segment=segment
+        self.transforms = transforms
         self.img_path=self.root+segment+"/img/"
         self.imgs=list(sorted(os.listdir(self.img_path)))[3:]
         self.ann_path=self.img_path+"camera_"+segment+'.pkl'
@@ -60,7 +60,6 @@ class WaymoDataset(torch.utils.data.Dataset):
                 obj_ids.append(3)
             elif label=='Cyclist':
                 obj_ids.append(4)
-        num_objs = len(obj_ids)
         image_id = torch.tensor([idx])
         labels = torch.as_tensor(obj_ids, dtype=torch.int64)
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
@@ -78,5 +77,5 @@ class WaymoDataset(torch.utils.data.Dataset):
 if __name__=="__main__":
     root="./PV_R-CNN/data/waymo/waymo_processed_data/"
     sequece='segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
-    test=WaymoDataset(root,sequece)
+    test=WaymoDataset(root,sequece,1)
     test.__getitem__(800)
