@@ -47,7 +47,9 @@ class WaymoDataset(torch.utils.data.Dataset):
     def __getitem__(self,idx): 
         img_path = os.path.join(self.img_path, self.imgs[idx])
         obj_ids=[]
+
         img=Image.open(img_path).convert("RGB")
+        print(img)
         boxes = torch.as_tensor(self.anno[idx]["ann"]["bboxes"], dtype=torch.float32)
         for label in self.anno[idx]["ann"]["labels"]:
             if label=='unknown':
@@ -71,11 +73,15 @@ class WaymoDataset(torch.utils.data.Dataset):
         target["image_id"] = image_id
         target["area"] = area
         target["iscrowd"] = iscrowd
-
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
         return img, target
-        
+
+    def __len__(self):
+        return len(self.imgs)
+
 if __name__=="__main__":
     root="./PV_R-CNN/data/waymo/waymo_processed_data/"
     sequece='segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
     test=WaymoDataset(root,sequece,1)
-    test.__getitem__(800)
+    test.__getitem__(1)
