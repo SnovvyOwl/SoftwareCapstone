@@ -40,7 +40,6 @@ class Camera(torch.utils.data.Dataset): #카메라하나당 하나씩
         target["image_id"] = self.imgs[idx]
         target["area"] = area
         target["iscrowd"] = iscrowd
-        print(target)
         # if self.transforms is not None:
         #     img, target = self.transforms(img, target) 
         return img, target  #target은 GT 박스
