@@ -3,7 +3,6 @@ import torch
 from PIL import Image
 import pickle
 import numpy as np
-
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 class Camera(torch.utils.data.Dataset): #카메라하나당 하나씩
     def __init__(self,root,imgs,anno,extrinsic,intrinsic):
