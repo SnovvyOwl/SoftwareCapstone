@@ -15,57 +15,6 @@ from PVRCNN.models import build_network, load_data_to_gpu
 from PVRCNN.utils import common_utils
 from WaymoDataset import *
 from easydict import EasyDict
-# def get_prediction(img_path, threshold):
-#   """
-#   get_prediction
-#     parameters:
-#       - img_path - path of the input image
-#       - threshold - threshold value for prediction score
-#     method:
-#       - Image is obtained from the image path
-#       - the image is converted to image tensor using PyTorch's Transforms
-#       - image is passed through the model to get the predictions
-#       - class, box coordinates are obtained, but only prediction score > threshold
-#         are chosen.
-    
-#   """
-#   img = Image.open(img_path)
-#   transform = T.Compose([T.ToTensor()])
-#   img = transform(img)
-#   pred = model([img])
-#   pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())]
-#   pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())]
-#   pred_score = list(pred[0]['scores'].detach().numpy())
-#   pred_t = [pred_score.index(x) for x in pred_score if x>threshold][-1]
-#   pred_boxes = pred_boxes[:pred_t+1]
-#   pred_class = pred_class[:pred_t+1]
-#   return pred_boxes, pred_class
-
-#   def get_prediction(img_path, threshold):
-#   """
-#   get_prediction
-#     parameters:
-#       - img_path - path of the input image
-#       - threshold - threshold value for prediction score
-#     method:
-#       - Image is obtained from the image path
-#       - the image is converted to image tensor using PyTorch's Transforms
-#       - image is passed through the model to get the predictions
-#       - class, box coordinates are obtained, but only prediction score > threshold
-#         are chosen.
-    
-#   """
-#   img = Image.open(img_path)
-#   transform = T.Compose([T.ToTensor()])
-#   img = transform(img)
-#   pred = model([img])
-#   pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())]
-#   pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())]
-#   pred_score = list(pred[0]['scores'].detach().numpy())
-#   pred_t = [pred_score.index(x) for x in pred_score if x>threshold][-1]
-#   pred_boxes = pred_boxes[:pred_t+1]
-#   pred_class = pred_class[:pred_t+1]
-#   return pred_boxes, pred_class
 
 class ValidationEachScene(object):
     def __init__(self,root,PCckpt):
