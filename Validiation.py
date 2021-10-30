@@ -16,6 +16,21 @@ from PVRCNN.utils import common_utils
 from WaymoDataset import *
 from easydict import EasyDict
 
+WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
+
+def cocol2waymo(label):
+    if label==1:
+        return WAYMO_CLASSES[2]
+    elif label in [3,5,6,7,8,9]:
+        return WAYMO_CLASSES[1]
+    elif label in [2,4]:
+        return WAYMO_CLASSES[4]
+    elif label ==10:
+        return WAYMO_CLASSES[3]
+    elif label not in range(1,11):
+        return WAYMO_CLASSES[0]
+
+
 class ValidationEachScene(object):
     def __init__(self,root,PCckpt):
         self.sequnce=None
@@ -96,6 +111,7 @@ class ValidationEachScene(object):
             return model
 
     def val(self):
+        transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
         final_output_dir=None
         save_to_file =False
         metric = {
@@ -108,7 +124,6 @@ class ValidationEachScene(object):
         dataset = self.test_loader.dataset
         class_names = dataset.class_names
         det_annos = []
-        Pointcloud=[]
         for i, batch_dict in enumerate(self.test_loader):
             idx=int(batch_dict["frame_id"][0][-3:])
             sequnce_id=batch_dict["frame_id"][0][:-4]
@@ -125,15 +140,21 @@ class ValidationEachScene(object):
                 batch_dict, pred_dicts, class_names,
                 output_path=final_output_dir if save_to_file else None
             )
-            img,target=self.imgloaded.__getitem__(idx)
-            transform = torch.Compose([torch.ToTensor()])
-
-            self.FASTERRCNN_model(img[0])
-            # print(result)
+            imgs,targets=self.imgloaded.__getitem__(idx)  
+            for img in imgs:
+                img=transform(img).cuda()
+                self.pred_2Dbox(img)
+            
             det_annos += annos
         return det_annos
-        
-        
+    
+    def pred_2Dbox(self,img):
+        pred_class=[]
+        pred=self.FASTERRCNN_model([img])
+        # pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())]
+        for i in list(pred[0]['labels'].cpu().numpy()):
+            pred_class.append(cocol2waymo(i))
+        return pred_boxes,pred_class
 
 if __name__=="__main__":
     root="./data/waymo/waymo_processed_data/"
