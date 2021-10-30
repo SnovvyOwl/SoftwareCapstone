@@ -2,8 +2,9 @@
 # Reference https://github.com/open-mmlab/OpenPCDet
 # Written by Shaoshuai Shi, Chaoxu Guo
 # All Rights Reserved 2019-2020.
-
 import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))))))
 import pickle
 import copy
 import numpy as np
@@ -11,9 +12,10 @@ import torch
 import multiprocessing
 from tqdm import tqdm
 from pathlib import Path
-from ...ops.roiaware_pool3d import roiaware_pool3d_utils
-from ...utils import box_utils, common_utils
-from ..dataset import DatasetTemplate
+from PVRCNN.ops.roiaware_pool3d import roiaware_pool3d_utils
+from PVRCNN.utils import box_utils, common_utils
+# from PVRCNN.dataset import DatasetTemplate
+from PVRCNN.datasets import DatasetTemplate
 
 
 class WaymoDataset(DatasetTemplate):
@@ -79,7 +81,7 @@ class WaymoDataset(DatasetTemplate):
     def get_infos(self, raw_data_path, save_path, num_workers=multiprocessing.cpu_count(), has_label=True, sampled_interval=1):
         import concurrent.futures as futures
         from functools import partial
-        from . import waymo_utils
+        import waymo_utils
         print('---------------The waymo sample interval is %d, total sequecnes is %d-----------------'
               % (sampled_interval, len(self.sample_sequence_list)))
 
