@@ -1,9 +1,6 @@
 import argparse
-import datetime
-import glob
-import os
-import re
-import time
+import torchvision
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from pathlib import Path
 from kornia.geometry.bbox import validate_bbox
 
@@ -19,17 +16,6 @@ from PVRCNN.utils import common_utils
 from WaymoDataset import *
 from easydict import EasyDict
 
-def eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=False):
-    # load checkpoint
-    model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=dist_test)
-    model.cuda()
-
-    # start evaluation
-    eval_utils.eval_one_epoch(
-        cfg, model, test_loader, epoch_id, logger, dist_test=dist_test,
-        result_dir=eval_output_dir, save_to_file=args.save_to_file
-    )
-
 class ValidationEachScene(object):
     def __init__(self,root,PCckpt):
         self.sequnce=None
@@ -40,7 +26,9 @@ class ValidationEachScene(object):
        
         self.args,self.cfg=self.parse_config(PCckpt)
         self.PVRCNN_model=self.build_PVRCNN_Model()
-        self.FASTERRCNN_model=None
+        self.FASTERRCNN_model=torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+        self.FASTERRCNN_model.cuda()
+        self.FASTERRCNN_model.eval()
         
     def parse_config(self,ckptdir):
         parser = argparse.ArgumentParser(description='arg parser')
@@ -91,14 +79,13 @@ class ValidationEachScene(object):
         else:
             assert self.args.batch_size % total_gpus == 0, 'Batch size should match the number of gpus'
             self.args.batch_size = self.args.batch_size // total_gpus
-        test_set, self.test_loader, sampler = build_dataloader(
+        self.test_set, self.test_loader, sampler = build_dataloader(
             dataset_cfg=cfg.DATA_CONFIG,
             class_names=cfg.CLASS_NAMES,
             batch_size=self.args.batch_size,
             dist=dist_test, workers=self.args.workers, logger=logger, training=False
         )
-        model = build_network(model_cfg=self.cfg.MODEL, num_class=len(self.cfg.CLASS_NAMES), dataset=test_set)
-        print(self.args.ckpt)
+        model = build_network(model_cfg=self.cfg.MODEL, num_class=len(self.cfg.CLASS_NAMES), dataset=self.test_set)
         model.load_params_from_file(filename=self.args.ckpt, logger=logger, to_cpu=dist_test)
         model.cuda()
         with torch.no_grad():
@@ -109,6 +96,19 @@ class ValidationEachScene(object):
             return model
 
     def val(self):
+        final_output_dir=None
+        save_to_file =False
+        metric = {
+            'gt_num': 0,
+        }
+        for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
+            metric['recall_roi_%s' % str(cur_thresh)] = 0
+            metric['recall_rcnn_%s' % str(cur_thresh)] = 0
+
+        dataset = self.test_loader.dataset
+        class_names = dataset.class_names
+        det_annos = []
+        Pointcloud=[]
         for i, batch_dict in enumerate(self.test_loader):
             idx=int(batch_dict["frame_id"][0][-3:])
             sequnce_id=batch_dict["frame_id"][0][:-4]
@@ -120,7 +120,17 @@ class ValidationEachScene(object):
             with torch.no_grad():
                 pred_dicts, ret_dict = self.PVRCNN_model(batch_dict) # 5개 당 하나씩 나옴
             disp_dict = {}
-            
+            eval_utils.statistics_info(cfg, ret_dict, metric, disp_dict)
+            annos = dataset.generate_prediction_dicts(
+                batch_dict, pred_dicts, class_names,
+                output_path=final_output_dir if save_to_file else None
+            )
+  
+
+            self.FASTERRCNN_model(self.imgloaded)
+            # print(result)
+            det_annos += annos
+        return det_annos
         
         
 
