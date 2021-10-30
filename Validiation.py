@@ -31,13 +31,12 @@ def eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id
     )
 
 class ValidationEachScene(object):
-    def __init__(self,root,sequence,batchsize,totalgpu,PCckpt):
-     
+    def __init__(self,root,PCckpt):
+        self.sequnce=None
         self.cfg=EasyDict()
         self.root=root
-        # self.list_sequence=list(sorted(os.listdir(root)))
-        self.imgloaded=Waymo2DLoader(self.root,sequence)
-        self.PCloaded=Waymo3DLoader(self.root,sequence)
+        self.imgloaded=None
+        self.PCloaded=None
        
         self.args,self.cfg=self.parse_config(PCckpt)
         self.PVRCNN_model=self.build_PVRCNN_Model()
@@ -50,7 +49,7 @@ class ValidationEachScene(object):
         parser.add_argument('--batch_size', type=int, default=1, required=False, help='batch size for training')
         parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
         parser.add_argument('--extra_tag', type=str, default='default', help='extra tag for this experiment')
-        parser.add_argument('--ckpt', type=str, default=None, help='checkpoint to start from')
+        parser.add_argument('--ckpt', type=str, default=ckptdir, help='checkpoint to start from')
         parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
         parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')
         parser.add_argument('--local_rank', type=int, default=0, help='local rank for distributed training')
@@ -99,6 +98,8 @@ class ValidationEachScene(object):
             dist=dist_test, workers=self.args.workers, logger=logger, training=False
         )
         model = build_network(model_cfg=self.cfg.MODEL, num_class=len(self.cfg.CLASS_NAMES), dataset=test_set)
+        print(self.args.ckpt)
+        model.load_params_from_file(filename=self.args.ckpt, logger=logger, to_cpu=dist_test)
         model.cuda()
         with torch.no_grad():
             dataset = self.test_loader.dataset
@@ -108,14 +109,18 @@ class ValidationEachScene(object):
             return model
 
     def val(self):
-        img,target=self.imgloaded[0]
-        pc,target3d=self.PCloaded[0]
         for i, batch_dict in enumerate(self.test_loader):
-            print(batch_dict)
+            idx=int(batch_dict["frame_id"][0][-3:])
+            sequnce_id=batch_dict["frame_id"][0][:-4]
             load_data_to_gpu(batch_dict)
+            if sequnce_id is not self.sequnce:
+                self.sequnce=sequnce_id
+                self.imgloaded=Waymo2DLoader(self.root,self.sequnce)
+                self.PCloaded=Waymo3DLoader(self.root,self.sequnce)
             with torch.no_grad():
-                pred_dicts, ret_dict = self.PVRCNN_model(batch_dict)
+                pred_dicts, ret_dict = self.PVRCNN_model(batch_dict) # 5개 당 하나씩 나옴
             disp_dict = {}
+            
         
         
 
@@ -123,5 +128,5 @@ if __name__=="__main__":
     root="./data/waymo/waymo_processed_data/"
     sequece='segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
     ckpt="/home/seongwon/SoftwareCapstone/checkpoints/checkpoint_epoch_30.pth"
-    test=ValidationEachScene(root,sequece,1,1,ckpt)
+    test=ValidationEachScene(root,ckpt)
     test.val()
