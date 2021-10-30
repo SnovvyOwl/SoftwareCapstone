@@ -6,7 +6,7 @@ import numpy as np
 
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 
-class WaymoDataset(torch.utils.data.Dataset):
+class WaymoDataLoader(torch.utils.data.Dataset):
     def __init__(self,root,segment,transforms):
         self.root=root
         self.segment=segment
@@ -83,5 +83,5 @@ class WaymoDataset(torch.utils.data.Dataset):
 if __name__=="__main__":
     root="./PV_R-CNN/data/waymo/waymo_processed_data/"
     sequece='segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
-    test=WaymoDataset(root,sequece,1)
+    test=WaymoDataLoader(root,sequece,1)
     test.__getitem__(1)
