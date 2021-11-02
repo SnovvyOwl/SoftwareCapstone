@@ -120,18 +120,20 @@ class ValidationEachScene(object):
         for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
             metric['recall_roi_%s' % str(cur_thresh)] = 0
             metric['recall_rcnn_%s' % str(cur_thresh)] = 0
-
         dataset = self.test_loader.dataset
         class_names = dataset.class_names
         det_annos = []
+        img_annos=[]
         for i, batch_dict in enumerate(self.test_loader):
             idx=int(batch_dict["frame_id"][0][-3:])
             sequnce_id=batch_dict["frame_id"][0][:-4]
             load_data_to_gpu(batch_dict)
+            img_pred={}
             if sequnce_id is not self.sequnce:
                 self.sequnce=sequnce_id
                 self.imgloaded=Waymo2DLoader(self.root,self.sequnce)
-                self.PCloaded=Waymo3DLoader(self.root,self.sequnce)
+                # self.PCloaded=Waymo3DLoader(self.root,self.sequnce)
+               
             with torch.no_grad():
                 pred_dicts, ret_dict = self.PVRCNN_model(batch_dict) # 5개 당 하나씩 나옴
             disp_dict = {}
@@ -140,13 +142,21 @@ class ValidationEachScene(object):
                 batch_dict, pred_dicts, class_names,
                 output_path=final_output_dir if save_to_file else None
             )
+            img_pred["extrinsic"]=self.imgloaded.extrinsic
+            img_pred["intrinsic"]=self.imgloaded.intrinsic
             imgs,targets=self.imgloaded.__getitem__(idx)  
+            img_pred["imgs"]=imgs
+            img_pred["anno"]=[]
+            img_pred["frame_id"]=batch_dict["frame_id"]
             for img in imgs:
                 img=transform(img).cuda()
-                self.pred_2Dbox(img)
+                pred_one_img=self.pred_2Dbox(img)
+                img_pred["anno"].append(pred_one_img)
             
             det_annos += annos
-        return det_annos
+            img_annos.append(img_pred)
+    
+        return det_annos,img_annos
     
     def pred_2Dbox(self,img):
         pred_class=[]
@@ -154,7 +164,12 @@ class ValidationEachScene(object):
         # pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())]
         for i in list(pred[0]['labels'].cpu().numpy()):
             pred_class.append(cocol2waymo(i))
-        return pred_boxes,pred_class
+        pred[0]['labels']=pred_class
+        # for i ,data in enumerate(pred[0]['labels']):
+        #     if data == 'unknown':
+        #         pred[0]['boxes'].cat([pred[0]['boxes'][0:i], pred[0]['boxes'][i+1:-1]])
+        #         pred[0]['score'].cat([pred[0]['score'][0:i], pred[0]['score'][i+1:-1]])
+        return pred[0]
 
 if __name__=="__main__":
     root="./data/waymo/waymo_processed_data/"

@@ -55,8 +55,8 @@ class Waymo2DLoader(torch.utils.data.Dataset):
         img_path=root+segment+"/img/"
         imgs=list(sorted(os.listdir(img_path)))[3:]
         self.ann_path=img_path+"camera_"+segment+'.pkl'
-        extrinsic=np.load(img_path+"extrinsic.npy")
-        intrinsic=np.load(img_path+"intrinsic.npy")
+        self.extrinsic=np.load(img_path+"extrinsic.npy")
+        self.intrinsic=np.load(img_path+"intrinsic.npy")
         front_anno, front_left_anno,front_right_anno,side_left_anno,side_right_anno = self.get_annotation()
         self.FRONT=Camera(img_path,imgs[:199],front_anno,extrinsic[0],intrinsic[0])
         self.FRONT_LEFT=Camera(img_path,imgs[199:398],front_left_anno,extrinsic[1],intrinsic[1])
