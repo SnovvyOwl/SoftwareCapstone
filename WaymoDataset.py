@@ -5,11 +5,9 @@ import pickle
 import numpy as np
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 class Camera(torch.utils.data.Dataset): #카메라하나당 하나씩
-    def __init__(self,root,imgs,anno,extrinsic,intrinsic):
+    def __init__(self,root,imgs,anno):
         self.imgs=imgs
         self.anno=anno
-        self.extrinsic=extrinsic
-        self.intrinsic=intrinsic
         self.root=root
     
     def __getitem__(self,idx):
@@ -58,11 +56,11 @@ class Waymo2DLoader(torch.utils.data.Dataset):
         self.extrinsic=np.load(img_path+"extrinsic.npy")
         self.intrinsic=np.load(img_path+"intrinsic.npy")
         front_anno, front_left_anno,front_right_anno,side_left_anno,side_right_anno = self.get_annotation()
-        self.FRONT=Camera(img_path,imgs[:199],front_anno,extrinsic[0],intrinsic[0])
-        self.FRONT_LEFT=Camera(img_path,imgs[199:398],front_left_anno,extrinsic[1],intrinsic[1])
-        self.FRONT_RIGHT=Camera(img_path,imgs[398:597],front_right_anno,extrinsic[2],intrinsic[2])
-        self.SIDE_LEFT=Camera(img_path,imgs[597:796],side_left_anno,extrinsic[3],intrinsic[3])
-        self.SIDE_RIGHT=Camera(img_path,imgs[796:],side_right_anno,extrinsic[4],intrinsic[4])
+        self.FRONT=Camera(img_path,imgs[:199],front_anno)
+        self.FRONT_LEFT=Camera(img_path,imgs[199:398],front_left_anno)
+        self.FRONT_RIGHT=Camera(img_path,imgs[398:597],front_right_anno)
+        self.SIDE_LEFT=Camera(img_path,imgs[597:796],side_left_anno)
+        self.SIDE_RIGHT=Camera(img_path,imgs[796:],side_right_anno)
  
     
     def get_annotation(self):

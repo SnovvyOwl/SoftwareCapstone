@@ -155,7 +155,7 @@ class ValidationEachScene(object):
             
             det_annos += annos
             img_annos.append(img_pred)
-    
+        print(img_annos)
         return det_annos,img_annos
     
     def pred_2Dbox(self,img):
@@ -165,10 +165,6 @@ class ValidationEachScene(object):
         for i in list(pred[0]['labels'].cpu().numpy()):
             pred_class.append(cocol2waymo(i))
         pred[0]['labels']=pred_class
-        # for i ,data in enumerate(pred[0]['labels']):
-        #     if data == 'unknown':
-        #         pred[0]['boxes'].cat([pred[0]['boxes'][0:i], pred[0]['boxes'][i+1:-1]])
-        #         pred[0]['score'].cat([pred[0]['score'][0:i], pred[0]['score'][i+1:-1]])
         return pred[0]
 
 if __name__=="__main__":
