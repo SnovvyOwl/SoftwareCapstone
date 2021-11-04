@@ -161,7 +161,8 @@ class Validation(object):
             img_annos.append(img_pred)
             progress_bar.set_postfix(disp_dict)
             progress_bar.update()
-        progress_bar.close()   
+        progress_bar.close()
+        self.logger.info('****************Evaluation done.*****************')
         return det_annos,img_annos
     
     def pred_2Dbox(self,img):

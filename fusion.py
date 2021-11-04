@@ -30,8 +30,6 @@ class Fusion(object):
 
     def calibration(self):
         annos3d,annos2d=self.val.val()
-        print("======================================Validation Complete=============================\n")
-
         sequence=annos2d[0]["frame_id"][0][0:-4]
         self.current_intrinsics,self.current_distcoeff=self.make_intrinsic_mat(annos2d[0]["intrinsic"])
         self.current_extrinsics=self.make_extrinsic_mat(annos2d[0]["extrinsic"])
@@ -39,8 +37,14 @@ class Fusion(object):
             if annos2d[i]["frame_id"][0][0:-4] != sequence:
                 self.current_intrinsics,self.current_distcoeff=self.make_intrinsic_mat(annos2d[i]["intrinsic"])
                 self.current_extrinsics=self.make_extrinsic_mat(annos2d[i]["extrinsic"])
-            
-
+            # for cam_num, img in enumerate(annos2d[i]["imgs"]):
+            #     img_udist=cv2.undistort(np.array(img),self.current_intrinsics[cam_num],self.current_distcoeff[cam_num]) 
+            img=np.array(annos2d[i]["imgs"][0])
+            img=img[:, :, ::-1].copy()
+            img_udist=cv2.undistort(img,self.current_intrinsics[0],self.current_distcoeff[0])
+            cv2.imwrite(filename="before.jpg",img=img)
+            cv2.imwrite(filename="after.jpg",img=img_udist)    
+           
 
     def visuallize(self):
         return NotImplemented
