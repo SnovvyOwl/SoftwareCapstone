@@ -3,7 +3,8 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from pathlib import Path
 from kornia.geometry.bbox import validate_bbox
-
+import tqdm
+import time
 import numpy as np
 import torch
 from tensorboardX import SummaryWriter
@@ -33,7 +34,7 @@ def cocol2waymo(label):
 
 class Validation(object):
     def __init__(self,root,PCckpt):
-        self.sequnce=None
+        self.sequence=None
         self.cfg=EasyDict()
         self.root=root
         self.imgloaded=None
@@ -44,7 +45,8 @@ class Validation(object):
         self.FASTERRCNN_model=torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
         self.FASTERRCNN_model.cuda()
         self.FASTERRCNN_model.eval()
-        
+        self.logger
+
     def parse_config(self,ckptdir):
         parser = argparse.ArgumentParser(description='arg parser')
         parser.add_argument('--cfg_file', type=str, default="PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml", help='specify the config for training')
@@ -79,7 +81,7 @@ class Validation(object):
         return args, cfg
     
     def build_PVRCNN_Model(self):
-        logger = common_utils.create_logger(None, rank=cfg.LOCAL_RANK)
+        self.logger = common_utils.create_logger(None, rank=cfg.LOCAL_RANK)
         if self.args.launcher == 'none':
             dist_test = False
             total_gpus = 1
@@ -95,13 +97,13 @@ class Validation(object):
             assert self.args.batch_size % total_gpus == 0, 'Batch size should match the number of gpus'
             self.args.batch_size = self.args.batch_size // total_gpus
         self.test_set, self.test_loader, sampler = build_dataloader(
-            dataset_cfg=cfg.DATA_CONFIG,
+            dataset_cfg=cfg.DATA_CONFIG, 
             class_names=cfg.CLASS_NAMES,
             batch_size=self.args.batch_size,
-            dist=dist_test, workers=self.args.workers, logger=logger, training=False
+            dist=dist_test, workers=self.args.workers, logger=self.logger, training=False
         )
         model = build_network(model_cfg=self.cfg.MODEL, num_class=len(self.cfg.CLASS_NAMES), dataset=self.test_set)
-        model.load_params_from_file(filename=self.args.ckpt, logger=logger, to_cpu=dist_test)
+        model.load_params_from_file(filename=self.args.ckpt, logger=self.logger, to_cpu=dist_test)
         model.cuda()
         with torch.no_grad():
             dataset = self.test_loader.dataset
@@ -124,14 +126,16 @@ class Validation(object):
         class_names = dataset.class_names
         det_annos = []
         img_annos=[]
+        progress_bar = tqdm.tqdm(total=len(self.test_loader), leave=True, desc='eval', dynamic_ncols=True)
+        start_time = time.time()
         for i, batch_dict in enumerate(self.test_loader):
             idx=int(batch_dict["frame_id"][0][-3:])
-            sequnce_id=batch_dict["frame_id"][0][:-4]
+            sequence_id=batch_dict["frame_id"][0][:-4]
             load_data_to_gpu(batch_dict)
             img_pred={}
-            if sequnce_id is not self.sequnce:
-                self.sequnce=sequnce_id
-                self.imgloaded=Waymo2DLoader(self.root,self.sequnce)
+            if sequence_id != self.sequence:
+                self.sequence=sequence_id
+                self.imgloaded=Waymo2DLoader(self.root,self.sequence)
                 # self.PCloaded=Waymo3DLoader(self.root,self.sequnce)
                
             with torch.no_grad():
@@ -155,6 +159,9 @@ class Validation(object):
             
             det_annos += annos
             img_annos.append(img_pred)
+            progress_bar.set_postfix(disp_dict)
+            progress_bar.update()
+        progress_bar.close()   
         return det_annos,img_annos
     
     def pred_2Dbox(self,img):
