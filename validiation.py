@@ -31,7 +31,7 @@ def cocol2waymo(label):
         return WAYMO_CLASSES[0]
 
 
-class ValidationEachScene(object):
+class Validation(object):
     def __init__(self,root,PCckpt):
         self.sequnce=None
         self.cfg=EasyDict()
@@ -169,7 +169,6 @@ class ValidationEachScene(object):
 
 if __name__=="__main__":
     root="./data/waymo/waymo_processed_data/"
-    sequece='segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
     ckpt="./checkpoints/checkpoint_epoch_30.pth"
-    test=ValidationEachScene(root,ckpt)
+    test=Validation(root,ckpt)
     test.val()
