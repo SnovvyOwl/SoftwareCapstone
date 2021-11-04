@@ -155,7 +155,6 @@ class ValidationEachScene(object):
             
             det_annos += annos
             img_annos.append(img_pred)
-        print(img_annos)
         return det_annos,img_annos
     
     def pred_2Dbox(self,img):
@@ -170,6 +169,6 @@ class ValidationEachScene(object):
 if __name__=="__main__":
     root="./data/waymo/waymo_processed_data/"
     sequece='segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
-    ckpt="/home/seongwon/SoftwareCapstone/checkpoints/checkpoint_epoch_30.pth"
+    ckpt="./checkpoints/checkpoint_epoch_30.pth"
     test=ValidationEachScene(root,ckpt)
     test.val()
