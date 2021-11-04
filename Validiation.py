@@ -159,7 +159,8 @@ class ValidationEachScene(object):
     
     def pred_2Dbox(self,img):
         pred_class=[]
-        pred=self.FASTERRCNN_model([img])
+        with torch.no_grad():
+            pred=self.FASTERRCNN_model([img])
         # pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())]
         for i in list(pred[0]['labels'].cpu().numpy()):
             pred_class.append(cocol2waymo(i))
