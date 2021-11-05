@@ -152,10 +152,12 @@ class Validation(object):
             img_pred["imgs"]=imgs
             img_pred["anno"]=[]
             img_pred["frame_id"]=batch_dict["frame_id"]
-            for img in imgs:
+
+            for i ,img in enumerate(imgs):
                 img=transform(img).cuda()
                 pred_one_img=self.pred_2Dbox(img)
                 img_pred["anno"].append(pred_one_img)
+                img_pred["image_id"]=targets[i]["image_id"]
             
             det_annos += annos
             img_annos.append(img_pred)

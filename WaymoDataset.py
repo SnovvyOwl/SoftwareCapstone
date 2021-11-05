@@ -5,11 +5,12 @@ import pickle
 import numpy as np
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 class Camera(torch.utils.data.Dataset): #카메라하나당 하나씩
-    def __init__(self,root,imgs,anno):
+    def __init__(self,root,imgs,anno,camera):
         self.imgs=imgs
         self.anno=anno
         self.root=root
-    
+        self.camera=camera
+
     def __getitem__(self,idx):
         img_path = os.path.join(self.root, self.imgs[idx])
         obj_ids=[]
@@ -32,13 +33,12 @@ class Camera(torch.utils.data.Dataset): #카메라하나당 하나씩
         iscrowd = torch.zeros(len(obj_ids,), dtype=torch.int64)
         target={}
         target["boxes"] = boxes
-        target["boxes"] = boxes
         target["labels"] = labels
         target["image_id"] = self.imgs[idx]
         target["area"] = area
         target["iscrowd"] = iscrowd
-        # if self.transforms is not None:
-        #     img, target = self.transforms(img, target) 
+        target["camera"]=self.camera
+
         return img, target  #target은 GT 박스
 
     def __len__(self):
@@ -56,11 +56,11 @@ class Waymo2DLoader(torch.utils.data.Dataset):
         self.extrinsic=np.load(img_path+"extrinsic.npy")
         self.intrinsic=np.load(img_path+"intrinsic.npy")
         front_anno, front_left_anno,front_right_anno,side_left_anno,side_right_anno = self.get_annotation()
-        self.FRONT=Camera(img_path,imgs[:199],front_anno)
-        self.FRONT_LEFT=Camera(img_path,imgs[199:398],front_left_anno)
-        self.FRONT_RIGHT=Camera(img_path,imgs[398:597],front_right_anno)
-        self.SIDE_LEFT=Camera(img_path,imgs[597:796],side_left_anno)
-        self.SIDE_RIGHT=Camera(img_path,imgs[796:],side_right_anno)
+        self.FRONT=Camera(img_path,imgs[:199],front_anno,"FRONT")
+        self.FRONT_LEFT=Camera(img_path,imgs[199:398],front_left_anno,"FRONT_LEFT")
+        self.FRONT_RIGHT=Camera(img_path,imgs[398:597],front_right_anno,"FRONT_RIGHT")
+        self.SIDE_LEFT=Camera(img_path,imgs[597:796],side_left_anno,"SIDE_LEFT")
+        self.SIDE_RIGHT=Camera(img_path,imgs[796:],side_right_anno,"SIDE_RIGHT")
  
     
     def get_annotation(self):
@@ -130,4 +130,5 @@ if __name__=="__main__":
     root="./data/waymo/waymo_processed_data/"
     sequece='segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
     test=Waymo2DLoader(root,sequece)
+    print(test.__getitem__(5))
     test1=Waymo3DLoader(root,sequece)
