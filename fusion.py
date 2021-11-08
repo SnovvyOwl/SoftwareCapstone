@@ -8,7 +8,7 @@ CAMMERA_NUM = 5
 
 class Fusion(object):
     def __init__(self, root, ckpt):
-        self.val = ModelManager(root, ckpt)
+        self.val =  ModelManager(root, ckpt)
         self.current_intrinsics = None
         self.current_distcoeff = None
         self.current_extrinsics = None
@@ -36,24 +36,23 @@ class Fusion(object):
     def calibration(self):
         annos3d, annos2d = self.val.val()
         sequence = annos2d[0]["frame_id"][0][0:-4]
-        self.current_intrinsics, self.current_distcoeff = self.make_intrinsic_mat(annos2d[0]["intrinsic"])
+        self.current_intrinsics=annos2d[0]["intrinsic"]
         self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
         result = []
         for i in range(len(annos2d)):
             img3d = {}
             if annos2d[i]["frame_id"][0][0:-4] != sequence:
-                self.current_intrinsics, self.current_distcoeff = self.make_intrinsic_mat(annos2d[i]["intrinsic"])
+                self.current_intrinsics=annos2d[i]["intrinsic"]
                 self.current_extrinsics = self.make_extrinsic_mat(annos2d[i]["extrinsic"])
                 annos2d[i]["frame_id"][0][0:-4] = sequence
             for cam_num, img in enumerate(annos2d[i]["imgs"]):
-                img = np.array(img)
-                img = img[:, :, ::-1].copy()
+                cv2.imwrite(filename="before.jpg",img=img)
 
                 img3d["frame_id"] = sequence
                 img3d["filename"] = annos2d[i]["image_id"]
-                img_to_3d = np.linalg.inv(self.current_extrinsics[cam_num]) * np.linalg.inv(
-                    self.current_intrinsics[cam_num]) * img
-                img3d["calbrationed"] = img_to_3d
+                # img_to_3d = np.linalg.inv(self.current_extrinsics[cam_num]) * np.linalg.inv(
+                #     self.current_intrinsics[cam_num]) * img
+                # img3d["calbrationed"] = img_to_3d
                 result.append(img3d)
             # img=np.array(annos2d[i]["imgs"][0])
             # img=img[:, :, ::-1].copy()

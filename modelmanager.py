@@ -153,6 +153,7 @@ class ModelManager(object):
             img_pred["extrinsic"] = self.imgloaded.extrinsic
             img_pred["intrinsic"] = self.imgloaded.intrinsic
             imgs, targets = self.imgloaded.__getitem__(idx)
+
             img_pred["imgs"] = imgs
             img_pred["anno"] = []
             img_pred["frame_id"] = batch_dict["frame_id"]
