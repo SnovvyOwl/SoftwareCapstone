@@ -185,5 +185,5 @@ class ModelManager(object):
 if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"
     ckpt = "./checkpoints/checkpoint_epoch_30.pth"
-    test = Validation(root, ckpt)
+    test = ModelManager(root, ckpt)
     test.val()
