@@ -33,7 +33,7 @@ def cocol2waymo(label):
         return WAYMO_CLASSES[0]
 
 
-class Validation(object):
+class ModelManager(object):
     def __init__(self, root, PCckpt):
         self.sequence = None
         self.cfg = EasyDict()

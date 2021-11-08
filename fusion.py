@@ -1,5 +1,5 @@
 from kornia.geometry import linalg
-from validiation import Validation
+from modelmanager import ModelManager
 import numpy as np
 import cv2
 
@@ -8,7 +8,7 @@ CAMMERA_NUM = 5
 
 class Fusion(object):
     def __init__(self, root, ckpt):
-        self.val = Validation(root, ckpt)
+        self.val = ModelManager(root, ckpt)
         self.current_intrinsics = None
         self.current_distcoeff = None
         self.current_extrinsics = None
