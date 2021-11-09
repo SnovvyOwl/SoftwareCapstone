@@ -1,8 +1,9 @@
-from kornia.geometry import linalg
+import numpy as np
+import open3d as o3d
 from modelmanager import ModelManager
 import numpy as np
 import cv2
-
+import pickle
 CAMMERA_NUM = 5
 
 
@@ -34,7 +35,11 @@ class Fusion(object):
         return extrinscis
 
     def calibration(self):
-        annos3d, annos2d = self.val.val()
+        # annos3d, annos2d = self.val.val()
+        with open("anno3d.pkl",'rb')as f:
+            annos3d=pickle.load(f)
+        with open("anno2d.pkl",'rb')as f:
+            annos2d=pickle.load(f)
         sequence = annos2d[0]["frame_id"][0][0:-4]
         self.current_intrinsics=annos2d[0]["intrinsic"]
         self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
@@ -46,19 +51,9 @@ class Fusion(object):
                 self.current_extrinsics = self.make_extrinsic_mat(annos2d[i]["extrinsic"])
                 annos2d[i]["frame_id"][0][0:-4] = sequence
             for cam_num, img in enumerate(annos2d[i]["imgs"]):
-                cv2.imwrite(filename="before.jpg",img=img)
 
                 img3d["frame_id"] = sequence
-                img3d["filename"] = annos2d[i]["image_id"]
-                # img_to_3d = np.linalg.inv(self.current_extrinsics[cam_num]) * np.linalg.inv(
-                #     self.current_intrinsics[cam_num]) * img
-                # img3d["calbrationed"] = img_to_3d
-                result.append(img3d)
-            # img=np.array(annos2d[i]["imgs"][0])
-            # img=img[:, :, ::-1].copy()
-            # img_udist=cv2.undistort(img,self.current_intrinsics[0],self.current_distcoeff[0])
-            # cv2.imwrite(filename="before.jpg",img=img)
-            # cv2.imwrite(filename="after.jpg",img=img_udist)    
+                img3d["filename"] = annos2d[i]["image_id"]   
         return result
 
     def visuallize(self):
