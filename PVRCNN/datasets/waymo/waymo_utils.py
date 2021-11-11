@@ -40,14 +40,24 @@ def save_camera_calbration_parameter(frame,save_path):
     frame=frame_utils.convert_frame_to_dict(frame)
     intrinsics=[]
     extrinsics=[]
+    timestamp=[]
+    pose=[]
+    camera_pose_name=["FRONT_POSE","FRONT_LEFT_POSE", "FRONT_RIGHT_POSE","SIDE_LEFT_POSE" , "SIDE_RIGHT_POSE"]
+    camera_timestamp_name=["FRONT_POSE_TIMESTAMP","FRONT_LEFT_POSE_TIMESTAMP", "FRONT_RIGHT_POSE_TIMESTAMP","SIDE_LEFT_POSE_TIMESTAMP" , "SIDE_RIGHT_POSE_TIMESTAMP"]
     camera_intrinsic_name=["FRONT_INTRINSIC","FRONT_LEFT_INTRINSIC", "FRONT_RIGHT_INTRINSIC","SIDE_LEFT_INTRINSIC" , "SIDE_RIGHT_INTRINSIC"]
     camera_extrinsic_name=["FRONT_EXTRINSIC","FRONT_LEFT_EXTRINSIC", "FRONT_RIGHT_EXTRINSIC","SIDE_LEFT_EXTRINSIC" , "SIDE_RIGHT_EXTRINSIC"]
     for camera_num in camera_intrinsic_name: #프레임당이미지 다섯개
         intrinsics.append(frame[camera_num])
     for camera_num in camera_extrinsic_name: #프레임당이미지 다섯개
         extrinsics.append(frame[camera_num])
+    for camera_num in camera_pose_name:
+        pose.append(frame[camera_num])
+    for camera_num in camera_timestamp_name:
+        timestamp.append(frame[camera_num])
     np.save(str(save_path)+"/extrinsic",extrinsics)
     np.save(str(save_path)+"/intrinsic",intrinsics)
+    np.save(str(save_path)+'/pose',pose)
+    np.save(str(save_path)+"/timestamp",timestamp)
 
 def generate_camera_labels(frame,filename):
     # camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]

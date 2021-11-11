@@ -48,7 +48,6 @@ def save_camera_calbration_parameter(frame,save_path):
     np.save(str(save_path)+"/intrinsic",intrinsics)
 
 def generate_camera_labels(frame,filename):
-    # camera_name=[ "FRONT_IMAGE", "FRONT_LEFT_IMAGE", "SIDE_LEFT_IMAGE" , "FRONT_RIGHT_IMAGE","SIDE_RIGHT_IMAGE"]
     camera=[]
     for labels in frame.projected_lidar_labels:
         info=make_label(labels,filename)
