@@ -176,10 +176,11 @@ class ModelManager(object):
         pred_class = []
         with torch.no_grad():
             pred = self.FASTERRCNN_model([img])
-        # pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())]
+        pred_boxes = [[i[0], i[1], i[2], i[3]] for i in list(pred[0]['boxes'].cpu().numpy())]
         for i in list(pred[0]['labels'].cpu().numpy()):
             pred_class.append(cocol2waymo(i))
         pred[0]['labels'] = pred_class
+        pred[0]['boxes']=pred_boxes
         return pred[0]
 
 
