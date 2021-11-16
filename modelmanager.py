@@ -134,9 +134,10 @@ class ModelManager(object):
         start_time = time.time()
         for i, batch_dict in enumerate(self.test_loader):
             idx = int(batch_dict["frame_id"][0][-3:])
+         
             sequence_id = batch_dict["frame_id"][0][:-4]
             load_data_to_gpu(batch_dict)
-            img_pred = {}
+           
             if sequence_id != self.sequence:
                 self.sequence = sequence_id
                 self.imgloaded = Waymo2DLoader(self.root, self.sequence)
@@ -150,22 +151,21 @@ class ModelManager(object):
                 batch_dict, pred_dicts, class_names,
                 output_path=final_output_dir if save_to_file else None
             )
+            img_pred = {}
             img_pred["extrinsic"] = self.imgloaded.extrinsic
             img_pred["intrinsic"] = self.imgloaded.intrinsic
             imgs, targets = self.imgloaded.__getitem__(idx)
-
             img_pred["imgs"] = imgs
             img_pred["anno"] = []
             img_pred["frame_id"] = batch_dict["frame_id"]
-
+            img_pred["image_id"]=[]
             for i, img in enumerate(imgs):
                 img = transform(img).cuda()
-                pred_one_img = self.pred_2Dbox(img)
+                pred_one_img = self.pred_2Dbox(img)  # 2d BOX anNOTATION. FOR 1 Image
                 img_pred["anno"].append(pred_one_img)
-                img_pred["image_id"] = targets[i]["image_id"]
-
-            det_annos += annos
+                img_pred["image_id"].append(targets[i]["image_id"])
             img_annos.append(img_pred)
+            det_annos += annos
             progress_bar.set_postfix(disp_dict)
             progress_bar.update()
         progress_bar.close()

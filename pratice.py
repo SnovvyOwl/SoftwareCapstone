@@ -11,17 +11,15 @@ class viewbox(object):
         self.boxmat=np.concatenate((self.min,self.max) ,axis=1)
 
 def projection(intrinsic,extrinsic,lidar,weight,height):
-    turn1=np.array([[-1,0,0],[0,-1,0],[0,0,1]])
-    turn2=np.array([[0,0,-1],[1,0,0],[0,-1,0]])
     camera=viewbox(0,0,weight,height)
     physical_plane=np.matmul(np.linalg.inv(intrinsic),camera.boxmat).T
     one=np.ones((len(lidar),1))
     cp_lidar=np.concatenate((lidar,one),axis=1)
-    # cam=o3d.geometry.LineSet()
-    # campoint=[[0,0,0],[physical_plane[0,0]*50,physical_plane[0,1]*50,50],[physical_plane[0,0]*50,physical_plane[1,1]*50,50],[physical_plane[1,0]*50,physical_plane[0,1]*50,50],[physical_plane[1,0]*50,physical_plane[1,1]*50,50]]
-    # line=[[0,1],[0,2],[0,3],[0,4],[1,2],[1,3],[2,4],[3,4]]
-    # cam.lines = o3d.utility.Vector2iVector(line)
-    # cam.points = o3d.utility.Vector3dVector(campoint)
+    cam=o3d.geometry.LineSet()
+    campoint=[[0,0,0],[physical_plane[0,0]*50,physical_plane[0,1]*50,50],[physical_plane[0,0]*50,physical_plane[1,1]*50,50],[physical_plane[1,0]*50,physical_plane[0,1]*50,50],[physical_plane[1,0]*50,physical_plane[1,1]*50,50]]
+    line=[[0,1],[0,2],[0,3],[0,4],[1,2],[1,3],[2,4],[3,4]]
+    cam.lines = o3d.utility.Vector2iVector(line)
+    cam.points = o3d.utility.Vector3dVector(campoint)
     to_plane=np.matmul(np.linalg.inv(extrinsic)[0:3,:],cp_lidar.T).T
     # to_plane=np.matmul(extrinsic[0:3,:],cp_lidar.T).T
     to_plane=np.concatenate(([-1*to_plane[:,1].T],[-1*to_plane[:,2].T],[to_plane[:,0].T]),axis=0).T
@@ -45,6 +43,7 @@ def projection(intrinsic,extrinsic,lidar,weight,height):
 if __name__ == "__main__":
     with open("anno3d.pkl",'rb')as f:
         annos3d=pickle.load(f)
+    print(annos3d)
     with open("anno2d.pkl",'rb')as f:
         annos2d=pickle.load(f)
     # generate some neat n times 3 matrix using a variant of sync function
@@ -63,10 +62,10 @@ if __name__ == "__main__":
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(in_box_point)
     pcd.paint_uniform_color([1, 0.706, 0])
-    # zero=o3d.geometry.PointCloud()
-    # zero.points=o3d.utility.Vector3dVector(np.array([[0,0,0]]))
-    # zero.paint_uniform_color([1,0,0])
+    zero=o3d.geometry.PointCloud()
+    zero.points=o3d.utility.Vector3dVector(np.array([[0,0,0]]))
+    zero.paint_uniform_color([1,0,0])
     all=o3d.geometry.PointCloud()
     all.points=o3d.utility.Vector3dVector(cp_xyz)
     all.paint_uniform_color([0,0,1])
-    o3d.visualization.draw_geometries([pcd,all])
+    o3d.visualization.draw_geometries([pcd,all,zero])
