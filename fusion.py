@@ -11,7 +11,7 @@ class viewbox(object):
     def __init__(self,boxes):
        
         self.min=np.array([[float(boxes[0])],[float(boxes[1])],[1]])
-        self.max=np.array([[float(boxes[3])],[float(boxes[3])],[1]])
+        self.max=np.array([[float(boxes[2])],[float(boxes[3])],[1]])
         self.boxmat=np.concatenate((self.min,self.max) ,axis=1)
 
 class Fusion(object):

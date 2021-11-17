@@ -37,35 +37,46 @@ def projection(intrinsic,extrinsic,lidar,weight,height):
                 if normal[i,0]<physical_plane[1,0]:
                     if normal[i,1]<physical_plane[1,1]:
                         idx.append(i)
-
     return in_box_point,idx
 
+def segmentation():
+    return NotImplementedError
 if __name__ == "__main__":
     with open("anno3d.pkl",'rb')as f:
         annos3d=pickle.load(f)
-    print(annos3d)
+
     with open("anno2d.pkl",'rb')as f:
         annos2d=pickle.load(f)
+    with open("frustrum.pkl",'rb')as f:
+        frustrum=pickle.load(f)
     # generate some neat n times 3 matrix using a variant of sync function
 
     xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/0000.npy")
     xyz=xyz[:,:3]
-    cameranum=4
-    # cameranum=int(input("input cameranum"))
-    if cameranum in [0,1,2]:
-        point, idx=projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
-    elif cameranum in [3,4]:
-        point, idx =projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
     cp_xyz= xyz.copy()
-    cp_xyz=np.delete( xyz,idx,axis=0)
-    in_box_point= xyz[idx]
+  
     pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(in_box_point)
+    label =frustrum[0]["frustrum"][0]
+    frustrum=xyz[label["frustrum"]]
+    print(label["label"])
+    pcd.points = o3d.utility.Vector3dVector(frustrum)
+
+    # cameranum=4
+    # # cameranum=int(input("input cameranum"))
+    # if cameranum in [0,1,2]:
+    #     point, idx=projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
+    # elif cameranum in [3,4]:
+    #     point, idx =projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
+    cp_xyz= xyz.copy()
+    cp_xyz=np.delete( xyz,label["frustrum"],axis=0)
+    # in_box_point= xyz[idx]
+    # pcd = o3d.geometry.PointCloud()
+    # 
     pcd.paint_uniform_color([1, 0.706, 0])
-    zero=o3d.geometry.PointCloud()
-    zero.points=o3d.utility.Vector3dVector(np.array([[0,0,0]]))
-    zero.paint_uniform_color([1,0,0])
+    # zero=o3d.geometry.PointCloud()
+    # zero.points=o3d.utility.Vector3dVector(np.array([[0,0,0]]))
+    # zero.paint_uniform_color([1,0,0])
     all=o3d.geometry.PointCloud()
     all.points=o3d.utility.Vector3dVector(cp_xyz)
     all.paint_uniform_color([0,0,1])
-    o3d.visualization.draw_geometries([pcd,all,zero])
+    o3d.visualization.draw_geometries([pcd,all])
