@@ -59,7 +59,7 @@ def segmentation(frustrum,label,box,idx):
         if point[2]>0.1:
             points.append(point)
             idices.append(idx[i])
-    cluster=make_cluster(centroid,frustrum,idx,0.01)   
+    cluster=make_cluster(centroid,centorid_idx,frustrum,idx,0.001)   
     # cluster=make_cluster(frustrum)   
     return cluster,vec
 
@@ -79,17 +79,22 @@ def segmentation(frustrum,label,box,idx):
 #                                   front=[-0.4999, -0.1659, -0.8499],
 #                                   lookat=[2.1813, 2.0619, 2.0999],
 #                                   up=[0.1204, -0.9852, 0.1215])
-def make_cluster(centroid,frustrum,idx,max_radius=2):
+def make_cluster(centroid,centroid_idx,frustrum,idx,max_radius=0.001):
     cluster=[]
     points=Queue()
     idices=Queue()
-    for i , point in enumerate(frustrum):
-        radius=np.array((point[0]-centroid[0])**2+(point[1]-centroid[1])**2+(point[2]-centroid[2])**2)
-        if radius<max_radius:
-            cluster.append(idx[i])
-        else:
-            points.put(point)
-            idices.put(idx[i])
+    points.put(centroid)
+    idices.put(centroid_idx)
+    cluster.append(centroid_idx)
+    cp_frustrum=frustrum.copy()
+    while points.empty()!=True:
+        leaf=points.get()
+        for i , point in enumerate(cp_frustrum):
+            radius=np.array((point[0]-leaf[0])**2+(point[1]-leaf[1])**2+(point[2]-leaf[2])**2)
+            if radius<max_radius:
+                cluster.append(idx[i])
+                points.put(point)
+                np.delete(cp_frustrum,i,0)
     return cluster
     
 def find_centroid(center_vector,frustrum,idx):
