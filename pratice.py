@@ -52,49 +52,40 @@ def segmentation(frustrum,label,box,idx):
     line=[[0,1]]
     vec.lines= o3d.utility.Vector2iVector(line)
     vec.points= o3d.utility.Vector3dVector(vecpoint)
-    centroid,centorid_idx=find_centroid(centroid_vector,frustrum,idx)
+    centroid,centorid_idx,fi=find_centroid(centroid_vector,frustrum,idx)
     points=[]
     idices=[]
     for i , point in enumerate(frustrum):
         if point[2]>0.1:
             points.append(point)
             idices.append(idx[i])
-    cluster=make_cluster(centroid,centorid_idx,frustrum,idx,0.001)   
+    cluster=make_cluster(centroid,fi,frustrum,idx,0.01)   
     # cluster=make_cluster(frustrum)   
     return cluster,vec
 
-# def make_cluster(frustrum):
-#     pcd = o3d.geometry.PointCloud()
-#     pcd.points = o3d.utility.Vector3dVector(frustrum)
-#     plane_model, inliers = pcd.segment_plane(distance_threshold=0.01,
-#                                          ransac_n=3,
-#                                          num_iterations=1000)
-#     [a, b, c, d] = plane_model
-#     print(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
-
-#     inlier_cloud = pcd.select_by_index(inliers)
-#     inlier_cloud.paint_uniform_color([1.0, 0, 0])
-#     outlier_cloud = pcd.select_by_index(inliers, invert=True)
-#     o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud], zoom=0.8,
-#                                   front=[-0.4999, -0.1659, -0.8499],
-#                                   lookat=[2.1813, 2.0619, 2.0999],
-#                                   up=[0.1204, -0.9852, 0.1215])
-def make_cluster(centroid,centroid_idx,frustrum,idx,max_radius=0.001):
+def make_cluster(centroid,centroid_idx,frustrum,idx,max_radius=0.1):
     cluster=[]
     points=Queue()
     idices=Queue()
     points.put(centroid)
-    idices.put(centroid_idx)
-    cluster.append(centroid_idx)
+    idices.put(idx[centroid_idx])
+    cluster.append(idx[centroid_idx])
     cp_frustrum=frustrum.copy()
+    cp_idx=idx.copy()
+    cp_frustrum=np.delete(cp_frustrum,centroid_idx,0)
+    cp_idx=np.delete(cp_idx,centroid_idx)
     while points.empty()!=True:
         leaf=points.get()
         for i , point in enumerate(cp_frustrum):
             radius=np.array((point[0]-leaf[0])**2+(point[1]-leaf[1])**2+(point[2]-leaf[2])**2)
             if radius<max_radius:
-                cluster.append(idx[i])
+                cluster.append(cp_idx[i])
                 points.put(point)
-                np.delete(cp_frustrum,i,0)
+                print(idx[i])
+                next_cp_idx=np.delete(cp_idx,i)
+                next_cp_frustrum=np.delete(cp_frustrum,i,0)
+        cp_idx=next_cp_idx
+        cp_frustrum=next_cp_frustrum
     return cluster
     
 def find_centroid(center_vector,frustrum,idx):
@@ -102,7 +93,7 @@ def find_centroid(center_vector,frustrum,idx):
     radius=(frustrum[:,1]-center_vector[1])**2+(frustrum[:,2]-center_vector[2])**2
     centroid=frustrum[np.argmin(radius)]
     centroid_idx=idx[np.argmin(radius)]
-    return centroid,centroid_idx
+    return centroid,centroid_idx ,np.argmin(radius)
 
 if __name__ == "__main__":
     with open("anno3d.pkl",'rb')as f:
