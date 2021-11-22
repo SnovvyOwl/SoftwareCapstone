@@ -1,6 +1,7 @@
 import numpy as np
 import open3d as o3d
 from torch._C import device, dtype
+from torch.autograd.grad_mode import F
 from modelmanager import ModelManager
 import numpy as np
 import cv2
@@ -20,7 +21,7 @@ class viewbox(object):
 
 class Fusion(object):
     def __init__(self, root, ckpt):
-        # self.val = ModelManager(root, ckpt)
+        self.val = ModelManager(root, ckpt)
         self.current_intrinsics = None
         self.current_distcoeff = None
         self.current_extrinsics = None
@@ -71,9 +72,9 @@ class Fusion(object):
             frustrum_for_onescene = self.make_frustrum(
                 annos2d[i]["anno"], xyz, point_planes)
 
-            # img3d["frustrum"]=frustrum_for_onescene
-            # img3d["frame_id"] = sequence
-            # img3d["filename"] = annos2d[i]["image_id"]
+            img3d["frustrum"]=frustrum_for_onescene
+            img3d["frame_id"] = sequence
+            img3d["filename"] = annos2d[i]["image_id"]
             result.append(img3d)
         with open("frustrum.pkl", 'wb') as f:
             pickle.dump(result, f)
@@ -128,6 +129,7 @@ class Fusion(object):
         return point_image.cpu()
 
     def make_frustrum(self, annos, xyz, point_planes):
+        frustrums=[]
         for camera_num in range(CAMMERA_NUM):
             for i, label in enumerate(annos[camera_num]["labels"]):
                 if label != "unknown":
@@ -135,11 +137,15 @@ class Fusion(object):
                     projected_point["label"] = label
                     box=[annos[camera_num]["boxes"][i][0],annos[camera_num]["boxes"][i][1],annos[camera_num]["boxes"][i][2],annos[camera_num]["boxes"][i][3]]
                     box=np.floor(box).astype(np.int)
-                
-              
-                    print(point_planes[camera_num][int(box[0]):int(box[1]),int(box[2]):int(box[3])].reshape(1).unique())
-                    # print(frustrum)
-
+                    # print(point_planes[camera_num][int((box[0]+box[1])/2)][(int(box[0]+box[1])/2)])
+                    frustrum=np.unique(point_planes[camera_num][box[0]:box[1],box[2]:box[3]].flatten("C"))
+                    # frustrum=np.delete(frustrum,0)
+                    projected_point["frustrum"]=frustrum
+                    frustrums.append(projected_point)
+        return frustrums
+    # def find_mid_point(self,box,point_plane):
+    #     mid=[(box[0]+box[1])/2,(box[2]+box[3])/2]
+    #     point_plane[(box[0]+box[1])/2][(box[0]+box[1])/2]
     # def projection(self,annos,lidar):
 
     #     frustrum_result=[]
