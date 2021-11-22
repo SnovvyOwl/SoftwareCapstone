@@ -105,8 +105,6 @@ def make_3dBox(anno):
     return boxes
     
 
-
-
 def check_numpy_to_torch(x):
     if isinstance(x, np.ndarray):
         return torch.from_numpy(x).float(), True
