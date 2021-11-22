@@ -112,7 +112,7 @@ class Fusion(object):
 
     def point_to_tensor(self, calibrated_point, width, height):
         point_image = -1 * \
-            torch.ones([width, height, 8], dtype=torch.int32, device='cuda:0')
+            torch.ones([width, height, 4], dtype=torch.int32, device='cuda:0')
         idx_tensor = torch.zeros([width, height], dtype=torch.int32)
         for idx, point in enumerate(calibrated_point):
             pixel_x = int(torch.floor(point[0]))
@@ -122,17 +122,22 @@ class Fusion(object):
                     point_image[pixel_x][pixel_y][idx_tensor[pixel_x]
                                                   [pixel_y]] = idx
                     # print(point_image[pixel_x][pixel_y][idx_tensor[pixel_x][pixel_y]])
+                    # print(idx_tensor[pixel_x][pixel_y])
                     idx_tensor[pixel_x][pixel_y] += 1
+                    # print(idx_tensor[pixel_x][pixel_y])
         return point_image.cpu()
 
     def make_frustrum(self, annos, xyz, point_planes):
-        for camera_num in range(5):
+        for camera_num in range(CAMMERA_NUM):
             for i, label in enumerate(annos[camera_num]["labels"]):
                 if label != "unknown":
                     projected_point = {}
                     projected_point["label"] = label
                     box=[annos[camera_num]["boxes"][i][0],annos[camera_num]["boxes"][i][1],annos[camera_num]["boxes"][i][2],annos[camera_num]["boxes"][i][3]]
-                    print(point_planes[camera_num].size())
+                    box=np.floor(box).astype(np.int)
+                
+              
+                    print(point_planes[camera_num][int(box[0]):int(box[1]),int(box[2]):int(box[3])].reshape(1).unique())
                     # print(frustrum)
 
     # def projection(self,annos,lidar):
