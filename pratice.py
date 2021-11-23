@@ -74,10 +74,10 @@ def make_cluster(centroid,centroid_idx,frustrum,idx,max_radius=0.1):
     while points.empty()!=True:
         leaf=points.get()
         radius=np.array((cp_frustrum[:,0]-leaf[0])**2+(cp_frustrum[:,1]-leaf[1])**2+(cp_frustrum[:,2]-leaf[2])**2)
-        idx=np.where(radius<max_radius)
-        cluster.extend(cp_idx[idx[0][:]])
-        next_cp_idx=np.delete(cp_idx,idx[0])
-        next_cp_frustrum=np.delete(cp_frustrum,idx[0],0)
+        i=np.where(radius<max_radius)
+        cluster.extend(cp_idx[i[0][:]])
+        next_cp_idx=np.delete(cp_idx,i[0])
+        next_cp_frustrum=np.delete(cp_frustrum,i[0],0)
         for i in list(idx[0][:]):
             points.put(cp_frustrum[i])
         cp_idx=next_cp_idx

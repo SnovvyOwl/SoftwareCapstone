@@ -1,14 +1,14 @@
 import numpy as np
 import open3d as o3d
-from torch._C import device, dtype
-from torch.autograd.grad_mode import F
 from modelmanager import ModelManager
 import numpy as np
-import cv2
 import torch
 import pickle
-
+import torch.distributed as dist
+import torch.multiprocessing as mp
+import os
 CAMMERA_NUM = 5
+
 
 class Fusion(object):
     def __init__(self, root, ckpt):
@@ -62,14 +62,15 @@ class Fusion(object):
                 sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
             frustrum_for_onescene = self.make_frustrum(
                 annos2d[i]["anno"], xyz, point_planes)
-
-            img3d["frustrum"]=frustrum_for_onescene
+            img3d["frustrum"] = frustrum_for_onescene
             img3d["frame_id"] = sequence
             img3d["filename"] = annos2d[i]["image_id"]
             result.append(img3d)
         with open("frustrum.pkl", 'wb') as f:
             pickle.dump(result, f)
         return result
+
+
 
     def pointcloud2image(self, lidar):
         point_planes = []
@@ -84,12 +85,10 @@ class Fusion(object):
             to_image = torch.matmul(torch.from_numpy(self.current_intrinsics[camera_num]).type(
                 torch.float64).cuda(), change_coordinate).T
             to_image = to_image/to_image[:, 2, None]
-            point_image = self.point_to_tensor(to_image, 1920, 1280)
-            point_planes.append(point_image.numpy())
+            point_plane = self.point_to_tensor(to_image, 1920, 1280)
+            point_planes.append(point_plane.numpy())
             # print("calibaration complete camera number: {0}".format(camera_num))
         for camera_num in [3, 4]:
-            point_image = torch.zeros(
-                [1920, 886, 5], dtype=torch.int32, device='cuda:0')
             to_plane = torch.matmul(torch.linalg.inv(torch.from_numpy(
                 self.current_extrinsics[camera_num]).type(torch.float64).cuda()), cp_lidar.T).T
             change_coordinate = torch.stack(
@@ -97,7 +96,7 @@ class Fusion(object):
             to_image = torch.matmul(torch.from_numpy(self.current_intrinsics[camera_num]).type(
                 torch.float64).cuda(), change_coordinate).T
             to_image = to_image/to_image[:, 2, None]
-            point_plane = self.point_to_tensor(to_image, 1920, 1280)
+            point_plane = self.point_to_tensor(to_image, 1920, 886)
             point_planes.append(point_plane.numpy())
             # print("calibaration complete camera number: {0}".format(camera_num))
         return point_planes
@@ -120,24 +119,49 @@ class Fusion(object):
         return point_image.cpu()
 
     def make_frustrum(self, annos, xyz, point_planes):
-        frustrums=[]
+        frustrums = []
         for camera_num in range(CAMMERA_NUM):
             for i, label in enumerate(annos[camera_num]["labels"]):
-                idx=None
+                idx = None
                 if label != "unknown":
                     projected_point = {}
                     projected_point["label"] = label
-                    box=[annos[camera_num]["boxes"][i][0],annos[camera_num]["boxes"][i][1],annos[camera_num]["boxes"][i][2],annos[camera_num]["boxes"][i][3]]
-                    box=np.floor(box).astype(np.int)
+                    box = [annos[camera_num]["boxes"][i][0], annos[camera_num]["boxes"][i]
+                           [1], annos[camera_num]["boxes"][i][2], annos[camera_num]["boxes"][i][3]]
+                    box = np.floor(box).astype(np.int)
                     # print(point_planes[camera_num][int((box[0]+box[1])/2)][(int(box[0]+box[1])/2)])
-                    frustrum=np.unique(point_planes[camera_num][box[0]:box[1],box[2]:box[3]].flatten("C"))
-                    idx=np.where(frustrum==-1)
+                    frustrum = np.unique(
+                        point_planes[camera_num][box[0]:box[1], box[2]:box[3]].flatten("C"))
+                    idx = np.where(frustrum == -1)
 
                     if idx is not None:
-                        frustrum=np.delete(frustrum,idx)
-                    projected_point["frustrum"]=frustrum
+                        frustrum = np.delete(frustrum, idx)
+                    projected_point["frustrum"] = frustrum
                     frustrums.append(projected_point)
+                    if frustrum.size != 0:
+                        centroid, centorid_idx, frustrum_idx = self.find_centroid(
+                            xyz[frustrum], frustrum)
+                        projected_point["centroid"] = centroid
+                        projected_point["centroid_idx"] = centorid_idx
+                    else:
+                        projected_point["centroid"] = None
+                        projected_point["centroid_idx"] = None
         return frustrums
+
+    def find_centroid(self, frustrum, frustrum_idx):
+        min_radius = (frustrum[:, 0]**2+frustrum[:, 1]
+                      ** 2+frustrum[:, 2]**2)**0.5
+        min_radius = min_radius[np.argmin(min_radius)]
+        mean_radius = (frustrum[:, 0].mean()**2+frustrum[:,
+                       1].mean()**2+frustrum[:, 2].mean()**2)**0.5
+        centroid_vector = [frustrum[:, 0].mean()/mean_radius*min_radius, frustrum[:, 1].mean(
+        )/mean_radius*min_radius, (frustrum[:, 2]).mean()/mean_radius*min_radius]
+        centroid = None
+        radius = (frustrum[:, 1]-centroid_vector[1])**2 + \
+            (frustrum[:, 2]-centroid_vector[2])**2
+        centroid = frustrum[np.argmin(radius)]
+        centroid_idx = frustrum_idx[np.argmin(radius)]
+        return centroid, centroid_idx, np.argmin(radius)
 
 
 if __name__ == "__main__":
