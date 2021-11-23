@@ -57,16 +57,7 @@ def segmentation(frustrum,idx):
     vec.lines= o3d.utility.Vector2iVector(line)
     vec.points= o3d.utility.Vector3dVector(vecpoint)
     centroid,centorid_idx,fi=find_centroid(centroid_vector,frustrum,idx)
-    points=[]
-    idices=[]
-    for i , point in enumerate(frustrum):
-        if point[2]>0.1:
-            points.append(point)
-            idices.append(idx[i])
     cluster=make_cluster(centroid,fi,frustrum,idx,0.01)   
-    # cluster.append(idx[605])
-    # cluster=idx
-    # cluster=make_cluster(frustrum)   
     return cluster,vec
 
 def make_cluster(centroid,centroid_idx,frustrum,idx,max_radius=0.1):
@@ -82,13 +73,13 @@ def make_cluster(centroid,centroid_idx,frustrum,idx,max_radius=0.1):
     cp_idx=np.delete(cp_idx,centroid_idx)
     while points.empty()!=True:
         leaf=points.get()
-        for i , point in enumerate(cp_frustrum):
-            radius=np.array((point[0]-leaf[0])**2+(point[1]-leaf[1])**2+(point[2]-leaf[2])**2)
-            if radius<max_radius:
-                cluster.append(cp_idx[i])
-                points.put(point)
-                next_cp_idx=np.delete(cp_idx,i)
-                next_cp_frustrum=np.delete(cp_frustrum,i,0)
+        radius=np.array((cp_frustrum[:,0]-leaf[0])**2+(cp_frustrum[:,1]-leaf[1])**2+(cp_frustrum[:,2]-leaf[2])**2)
+        idx=np.where(radius<max_radius)
+        cluster.extend(cp_idx[idx[0][:]])
+        next_cp_idx=np.delete(cp_idx,idx[0])
+        next_cp_frustrum=np.delete(cp_frustrum,idx[0],0)
+        for i in list(idx[0][:]):
+            points.put(cp_frustrum[i])
         cp_idx=next_cp_idx
         cp_frustrum=next_cp_frustrum
     return cluster

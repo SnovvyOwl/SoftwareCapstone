@@ -6,18 +6,9 @@ from modelmanager import ModelManager
 import numpy as np
 import cv2
 import torch
-# from multiprocessing import Process, Queue
 import pickle
+
 CAMMERA_NUM = 5
-
-
-class viewbox(object):
-    def __init__(self, boxes):
-
-        self.min = np.array([[float(boxes[0])], [float(boxes[1])], [1]])
-        self.max = np.array([[float(boxes[2])], [float(boxes[3])], [1]])
-        self.boxmat = np.concatenate((self.min, self.max), axis=1)
-
 
 class Fusion(object):
     def __init__(self, root, ckpt):
@@ -132,6 +123,7 @@ class Fusion(object):
         frustrums=[]
         for camera_num in range(CAMMERA_NUM):
             for i, label in enumerate(annos[camera_num]["labels"]):
+                idx=None
                 if label != "unknown":
                     projected_point = {}
                     projected_point["label"] = label
@@ -139,7 +131,10 @@ class Fusion(object):
                     box=np.floor(box).astype(np.int)
                     # print(point_planes[camera_num][int((box[0]+box[1])/2)][(int(box[0]+box[1])/2)])
                     frustrum=np.unique(point_planes[camera_num][box[0]:box[1],box[2]:box[3]].flatten("C"))
-                    # frustrum=np.delete(frustrum,0)
+                    idx=np.where(frustrum==-1)
+
+                    if idx is not None:
+                        frustrum=np.delete(frustrum,idx)
                     projected_point["frustrum"]=frustrum
                     frustrums.append(projected_point)
         return frustrums
