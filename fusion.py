@@ -138,52 +138,7 @@ class Fusion(object):
                     projected_point["frustrum"]=frustrum
                     frustrums.append(projected_point)
         return frustrums
-    # def find_mid_point(self,box,point_plane):
-    #     mid=[(box[0]+box[1])/2,(box[2]+box[3])/2]
-    #     point_plane[(box[0]+box[1])/2][(box[0]+box[1])/2]
-    # def projection(self,annos,lidar):
-
-    #     frustrum_result=[]
-    #     one=np.ones((len(lidar),1))
-    #     cp_lidar=np.concatenate((lidar,one),axis=1)
-    #     # p=[]
-    #     # Q=Queue()
-    #     for camera_num, anno in enumerate(annos):
-    #         to_plane=np.matmul(np.linalg.inv(self.current_extrinsics[camera_num])[0:3,:],cp_lidar.T).T  #포인트를 카메라좌표계로 변환
-    #     #     procsess=Process(target=self.make_frustrum,args=(camera_num,anno,to_plane,Q,))
-    #     #     p.append(procsess)
-    #     # for i in range(5):
-    #     #     p[i].start()
-
-    #     # for i in range(5):
-    #     #     p[i].join()
-    #     # for i in range(5):
-    #     #     frustrum_result.append(Q.get())
-    #     #     p[i].close()
-    #         for i , label in enumerate(anno["labels"]):
-    #             if label !="unknown":
-    #                 projected_point={}
-    #                 projected_point["label"]=label
-    #                 camera=viewbox(anno["boxes"][i])
-    #                 physical_plane=np.matmul(np.linalg.inv(self.current_intrinsics[camera_num]),camera.boxmat).T #각박스의 피지컬 프레인을 구함
-    #                 to_plane=np.concatenate(([-1*to_plane[:,1].T],[-1*to_plane[:,2].T],[to_plane[:,0].T]),axis=0).T
-    #                 toplaneidx=[]
-    #                 for i,point in enumerate(to_plane):
-    #                     if point[2]>0:
-    #                         toplaneidx.append(i)
-    #                 normal=to_plane
-    #                 normal=normal/normal[:,2][:,None]
-    #                 idx=[]
-    #                 for i in toplaneidx:
-    #                     if normal[i,0]>physical_plane[0,0]:
-    #                         if normal[i,1]>physical_plane[0,1]:
-    #                             if normal[i,0]<physical_plane[1,0]:
-    #                                 if normal[i,1]<physical_plane[1,1]:
-    #                                     idx.append(i)
-    #                 projected_point["frustrum"]=idx #각 이미지박스 별로 프러스트럼만들어지면 그포인트 들의 인덱스를 리스트에 저장
-    #             frustrum_result.append(projected_point)
-    #     return frustrum_result
-
+   
     def visuallize(self):
         return NotImplemented
 
