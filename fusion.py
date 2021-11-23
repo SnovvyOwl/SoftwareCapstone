@@ -138,9 +138,6 @@ class Fusion(object):
                     projected_point["frustrum"]=frustrum
                     frustrums.append(projected_point)
         return frustrums
-   
-    def visuallize(self):
-        return NotImplemented
 
 
 if __name__ == "__main__":
