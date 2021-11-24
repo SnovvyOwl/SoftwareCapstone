@@ -1,4 +1,5 @@
 import pickle
+import random
 import copy
 from re import M
 import numpy as np
@@ -7,6 +8,7 @@ import open3d as o3d
 from tensorflow.python.eager.context import PhysicalDevice
 from queue import Queue
 import torch
+from fusion import Fusion
 # class viewbox(object):
 #     def __init__(self,minx,miny,maxx,maxy):
 #         self.min=np.array([[minx],[miny],[1]])
@@ -158,27 +160,61 @@ def find_centroid(center_vector,frustrum,idx):
     centroid=frustrum[np.argmin(radius)]
     centroid_idx=idx[np.argmin(radius)]
     return centroid,centroid_idx ,np.argmin(radius)
+def image2point(xyz,pointidx):
+    res=[]
+    vec=[]
+    for i,f in enumerate(pointidx):
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(xyz[f])
+        pcd.paint_uniform_color([i/5, 0, 0])
+        vec=vec+list(f)
+        res.append(pcd)
+    return res,vec
 
 if __name__ == "__main__":
+    root = "./data/waymo/waymo_processed_data/"
+    sequence = 'segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
+    ckpt = "./checkpoints/checkpoint_epoch_30.pth"
+    fu=Fusion( root,ckpt)
     with open("anno3d.pkl",'rb')as f:
         annos3d=pickle.load(f)
 
-    with open("anno2d.pkl",'rb')as f:
-        annos2d=pickle.load(f)
-    with open("frustrum.pkl",'rb')as f:
-        frustrum=pickle.load(f)
+    # with open("anno2d.pkl",'rb')as f:
+    #     annos2d=pickle.load(f)
+    # with open("frustrum.pkl",'rb')as f:
+    #     frustrum=pickle.load(f)
+   
     # generate some neat n times 3 matrix using a variant of sync function
     xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/0000.npy")
     xyz=xyz[:,:3]
-  
-    pcd = o3d.geometry.PointCloud()
-    label =frustrum[0]["frustrum"][0]
+    fu.set_matrix()
+    plane=fu.pointcloud2image(xyz)
+    res=fu.doitwell(plane)
+    frustrum,id=image2point(xyz,res)
+    # frustrums=[]
+    # for f in frustrum[0]["frustrum"]:
+    #         if f["centroid_idx"] is not None:
+    #             frustrums.append(f)
+    # pcds=[]
+    # vecs=[]
+    # for f in frustrums:
+    #     if f["label"]=='Pedestrian':
+    #         pcd = o3d.geometry.PointCloud()
+    #         pcd.points = o3d.utility.Vector3dVector(xyz[f["frustrum"]])
+    #         pcd.paint_uniform_color([random.randint(0,1), 0, 0])    
+    #     elif f["label"]=='Vehicle':
+    #         pcd= o3d.geometry.PointCloud()
+    #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
+    #         pcd.paint_uniform_color([0,0, random.randint(0,1)])
+    #     elif f["label"]=='Cyclist':
+    #         pcd= o3d.geometry.PointCloud()
+    #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
+    #         pcd.paint_uniform_color([0, random.randint(0,1), 0])
+    #     pcds.append(pcd)
+    #     vecs=vecs+list(f["frustrum"])
     
-    frustrum=xyz[label["frustrum"]]
-    print(frustrum)
+    # pcd.points = o3d.utility.Vector3dVector( xyz[])
 
-
-    pcd.points = o3d.utility.Vector3dVector( xyz[seg])
     box=make_3dBox(annos3d[0])
     # cameranum=4
     # # cameranum=int(input("input cameranum"))
@@ -187,26 +223,28 @@ if __name__ == "__main__":
     # elif cameranum in [3,4]:
     #     point, idx =projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
     cp_xyz= xyz.copy()
-    cp_xyz=np.delete( xyz,seg,axis=0)
+    # cp_xyz=np.delete( xyz,seg,axis=0)
     # in_box_point= xyz[idx]
     # pcd = o3d.geometry.PointCloud()
     # 
-    pcd.paint_uniform_color([1, 0.706, 0])
+    cp_xyz=np.delete(xyz,id,axis=0)
     # zero=o3d.geometry.PointCloud()
     # zero.points=o3d.utility.Vector3dVector(np.array([[0,0,0]]))
     # zero.paint_uniform_color([1,0,0])
     all=o3d.geometry.PointCloud()
     all.points=o3d.utility.Vector3dVector(cp_xyz)
     all.paint_uniform_color([0,0,1])
-    point=[pcd,all]
-    box.append(pcd)
-    box.append(all)
+    res.append(all)
     vis=o3d.visualization.Visualizer()
     vis.create_window()
     for b in box:
         vis.add_geometry(b)
     vis.add_geometry(all)
-    vis.add_geometry(pcd)
+    vis.add_geometry(frustrum[0])
+    vis.add_geometry(frustrum[1])
+    vis.add_geometry(frustrum[2])
+    vis.add_geometry(frustrum[3])
+    vis.add_geometry(frustrum[4])
     vis.get_render_option().line_width = 100
     vis.update_renderer()
 
