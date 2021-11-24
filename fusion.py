@@ -1,23 +1,28 @@
+from re import T
 import numpy as np
 import open3d as o3d
 from modelmanager import ModelManager
 import numpy as np
 import torch
 import pickle
-
+from queue import Queue
+import multiprocessing as mp
+from tqdm import tqdm
 CAMMERA_NUM = 5
 
+
 def make_3dBox(anno):
-    boxes=[]
-    lines=[[0,1],[1,2],[2,3],[0,3],[0,4],[4,5],[5,6],[6,7],[4,7],[1,5],[2,6],[3,7]]
-    corners3d=boxes_to_corners_3d(anno["boxes_lidar"])
+    boxes = []
+    lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5],
+             [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
+    corners3d = boxes_to_corners_3d(anno["boxes_lidar"])
     for box in corners3d:
-        box3d=o3d.geometry.LineSet()
-        box3d.points= o3d.utility.Vector3dVector(box)
-        box3d.lines=o3d.utility.Vector2iVector(lines)
+        box3d = o3d.geometry.LineSet()
+        box3d.points = o3d.utility.Vector3dVector(box)
+        box3d.lines = o3d.utility.Vector2iVector(lines)
         boxes.append(box3d)
     return boxes
-    
+
 
 def check_numpy_to_torch(x):
     if isinstance(x, np.ndarray):
@@ -72,10 +77,12 @@ def boxes_to_corners_3d(boxes3d):
     )) / 2
 
     corners3d = boxes3d[:, None, 3:6].repeat(1, 8, 1) * template[None, :, :]
-    corners3d = rotate_points_along_z(corners3d.view(-1, 8, 3), boxes3d[:, 6]).view(-1, 8, 3)
+    corners3d = rotate_points_along_z(
+        corners3d.view(-1, 8, 3), boxes3d[:, 6]).view(-1, 8, 3)
     corners3d += boxes3d[:, None, 0:3]
 
     return corners3d.numpy() if is_numpy else corners3d
+
 
 class Fusion(object):
     def __init__(self, root, ckpt):
@@ -115,7 +122,7 @@ class Fusion(object):
         self.current_extrinsics = self.make_extrinsic_mat(
             annos2d[0]["extrinsic"])
         result = []
-        for i in range(len(annos2d)):  # all sequence
+        for i in tqdm((range(len(annos2d)))):  # all sequence
             img3d = {}
             if annos2d[i]["frame_id"][0][0:-4] != sequence:
                 self.current_intrinsics = annos2d[i]["intrinsic"]
@@ -125,13 +132,15 @@ class Fusion(object):
             xyz = np.load(self.root+sequence+'/0' +
                           annos2d[i]["frame_id"][0][-3:]+".npy")[:, :3]
             point_planes = self.pointcloud2image(xyz)
-            print("{0} ==> calibartion complete".format(
-                sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
+            # print("{0} ==> calibartion complete".format(
+                # sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
             frustrum_for_onescene = self.make_frustrum(
                 annos2d[i]["anno"], xyz, point_planes)
+            # seg_result = self.segmetation(xyz, frustrum_for_onescene)
             img3d["frustrum"] = frustrum_for_onescene
             img3d["frame_id"] = sequence
             img3d["filename"] = annos2d[i]["image_id"]
+            # img3d["seg"]=seg_result
             result.append(img3d)
         with open("frustrum.pkl", 'wb') as f:
             pickle.dump(result, f)
@@ -202,15 +211,18 @@ class Fusion(object):
                     if idx is not None:
                         frustrum = np.delete(frustrum, idx)
                     projected_point["frustrum"] = frustrum
-                    frustrums.append(projected_point)
+                    
                     if frustrum.size != 0:
                         centroid, centorid_idx, frustrum_idx = self.find_centroid(
                             xyz[frustrum], frustrum)
                         projected_point["centroid"] = centroid
                         projected_point["centroid_idx"] = centorid_idx
+                        projected_point["frustrum_idx"]=frustrum_idx
                     else:
                         projected_point["centroid"] = None
                         projected_point["centroid_idx"] = None
+                        projected_point["frustrum_idx"]=None
+                    frustrums.append(projected_point)
         return frustrums
 
     def find_centroid(self, frustrum, frustrum_idx):
@@ -227,6 +239,65 @@ class Fusion(object):
         centroid = frustrum[np.argmin(radius)]
         centroid_idx = frustrum_idx[np.argmin(radius)]
         return centroid, centroid_idx, np.argmin(radius)
+
+    def segmetation(self, all_point, frustrums):
+        seg_res=[]
+        que=mp.Queue()
+        tmp=[]
+        for f in frustrums:
+            if f["centroid_idx"] is not None:
+                tmp.append(f)
+        start_pos=0
+        div=2
+                # int(mp.cpu_count()/2)
+        end_pos=len(frustrums)
+        for i in tqdm(range(start_pos, end_pos + div, div)):
+            current=tmp[start_pos:start_pos + div]
+            self.make_cluster(current[0],all_point,que,0.007)
+            res={}
+            if current!=[]:
+                procs=[]
+                for frustrum in current:
+                    proc=mp.Process(target=self.make_cluster,args=(frustrum,all_point,que,0.007))
+                    procs.append(proc)
+                    proc.start()
+                for proc in procs:
+                    seg_res.append(que.get())
+                    proc.join()
+                for proc in procs:
+                    proc.close()
+            start_pos = start_pos + div
+        return seg_res
+
+    def make_cluster(self,frustrum, all_point,que,max_radius=0.01):
+        res={}
+        res["label"]=frustrum["label"]
+        res["centroid"]=frustrum["centroid"]
+        res["centroid_idx"]=frustrum["centroid_idx"]
+        cluster = []
+        centroid=frustrum["centroid"]
+        centroid_idx=frustrum["centroid_idx"]
+        points = Queue()
+        idices = Queue()
+        points.put(centroid)
+        idx=list(range(all_point.shape[0]))
+        idices.put(idx[centroid_idx])
+        cluster.append(idx[centroid_idx])
+        cp_all_point = all_point.copy()
+        cp_all_point = np.delete(cp_all_point, centroid_idx, 0)
+        idx = np.delete(idx, centroid_idx)
+        while points.empty() != True:
+            leaf = points.get()
+            radius = np.array((cp_all_point[:, 0]-leaf[0])**2+(cp_all_point[:, 1]-leaf[1])**2+(cp_all_point[:, 2]-leaf[2])**2)
+            cluster_idx = np.where(radius < max_radius)
+            cluster.extend(idx[cluster_idx[0][:]])
+            next_idx = np.delete(idx, cluster_idx[0])
+            next_cp_all_point = np.delete(cp_all_point, cluster_idx[0], 0)
+            for i in list(cluster_idx[0][:]):
+                points.put(cp_all_point[i])
+            idx = next_idx
+            cp_all_point = next_cp_all_point   
+        que.put(cluster)
 
 
 if __name__ == "__main__":
