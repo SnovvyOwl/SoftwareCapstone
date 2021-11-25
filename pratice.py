@@ -201,15 +201,15 @@ if __name__ == "__main__":
         if f["label"]=='Pedestrian':
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-            pcd.paint_uniform_color([random.randint(0,1), 0, 0])    
+            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])    
         elif f["label"]=='Vehicle':
             pcd= o3d.geometry.PointCloud()
             pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-            pcd.paint_uniform_color([0,0, random.randint(0,1)])
+            pcd.paint_uniform_color([np.random.rand() ,0, np.random.rand() ])
         elif f["label"]=='Cyclist':
             pcd= o3d.geometry.PointCloud()
             pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-            pcd.paint_uniform_color([0, random.randint(0,1), 0])
+            pcd.paint_uniform_color([0, np.random.rand() , np.random.rand() ])
         pcds.append(pcd)
         vecs=vecs+list(f["frustrum"])
     

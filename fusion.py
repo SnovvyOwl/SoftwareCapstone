@@ -142,11 +142,11 @@ class Fusion(object):
             # print("{0} ==> calibartion complete".format(
                 # sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
             frustrum_for_onescene = self.make_frustrum(annos2d[i]["anno"], xyz, point_planes)
-            # seg_result = self.segmetation(xyz, frustrum_for_onescene)
+            seg_result = self.segmetation(xyz, frustrum_for_onescene)
             img3d["frustrum"] = frustrum_for_onescene
             img3d["frame_id"] = sequence
             img3d["filename"] = annos2d[i]["image_id"]
-            # img3d["seg"]=seg_result
+            img3d["seg"]=seg_result
             result.append(img3d)
         with open("frustrum.pkl", 'wb') as f:
             pickle.dump(result, f)
@@ -245,7 +245,7 @@ class Fusion(object):
                     else:
                         projected_point["centroid"] = None
                         projected_point["centroid_idx"] = None
-                        # projected_point["frustrum_idx"]=None
+                        projected_point["frustrum_idx"]=None
                     frustrums.append(projected_point)
         return frustrums
     def find_centroid2(self,plane,box):
