@@ -1,5 +1,5 @@
 from operator import pos
-from re import T
+from re import I, T
 import numpy as np
 import open3d as o3d
 from modelmanager import ModelManager
@@ -113,8 +113,6 @@ class Fusion(object):
         return extrinscis
     
     def set_matrix(self):
-        with open("anno3d.pkl", 'rb')as f:
-            annos3d = pickle.load(f)
         with open("anno2d.pkl", 'rb')as f:
             annos2d = pickle.load(f)
         self.current_intrinsics = annos2d[0]["intrinsic"]
@@ -128,8 +126,7 @@ class Fusion(object):
             annos2d = pickle.load(f)
         sequence = annos2d[0]["frame_id"][0][0:-4]
         self.current_intrinsics = annos2d[0]["intrinsic"]
-        self.current_extrinsics = self.make_extrinsic_mat(
-            annos2d[0]["extrinsic"])
+        self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
         result = []
         for i in tqdm((range(len(annos2d)))):  # all sequence
             img3d = {}
@@ -139,18 +136,30 @@ class Fusion(object):
                 annos2d[i]["frame_id"][0][0:-4] = sequence
             xyz = np.load(self.root+sequence+'/0'+annos2d[i]["frame_id"][0][-3:]+".npy")[:, :3]
             point_planes = self.pointcloud2image(xyz)
-            # print("{0} ==> calibartion complete".format(
-                # sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
+            # print("{0} ==> calibartion complete".format(sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
             frustrum_for_onescene = self.make_frustrum(annos2d[i]["anno"], xyz, point_planes)
-            seg_result = self.segmetation(xyz, frustrum_for_onescene)
+            # seg_result = self.segmetation(xyz, frustrum_for_onescene)
+            res=self.is_box_in_frustrum(frustrum_for_onescene,annos3d[i])
             img3d["frustrum"] = frustrum_for_onescene
             img3d["frame_id"] = sequence
             img3d["filename"] = annos2d[i]["image_id"]
-            img3d["seg"]=seg_result
+            # img3d["seg"]=seg_result
             result.append(img3d)
         with open("frustrum.pkl", 'wb') as f:
             pickle.dump(result, f)
         return result
+    
+    def is_box_in_frustrum(self,frustrum_per_onescene,boxes):
+        corner_boxes=[]
+        for box in boxes["boxes_lidar"]:
+            corner=boxes_to_corners_3d(box)
+            s
+            corner_boxes.append(corner)
+        for i ,frustrum in enumerate(frustrum_per_onescene):
+            for box in corner_boxes:
+                frustrum["frustrum"]
+        
+        return NotImplementedError
 
     def pointcloud2image(self, lidar):
         point_planes = []
@@ -161,10 +170,6 @@ class Fusion(object):
         for camera_num in range(3):
             to_plane = torch.matmul(torch.linalg.inv(torch.from_numpy(self.current_extrinsics[camera_num]).type(torch.float64).cuda()), cp_lidar.T).T
             change_coordinate = torch.stack([-1*to_plane[:, 1], -1*to_plane[:, 2], to_plane[:, 0]], dim=0).cpu().numpy().T
-            # img=[]
-            # for point in change_coordinate:
-            #     if point[2]>0:
-            #         img.append(point)
             lidar_idx=np.array((range(len(lidar))))
             negative_idx=np.where(change_coordinate[:,2]<=0)
             change_coordinate=np.delete(change_coordinate,negative_idx,axis=0).T
@@ -193,7 +198,6 @@ class Fusion(object):
     def point_to_tensor(self, calibrated_point, lidar_idx,width, height):
         point_image = -1 * torch.ones([width, height, 4], dtype=torch.int32, device='cuda:0')
         idx_tensor = torch.zeros([width, height], dtype=torch.int32)
-        tmp=[]
         for idx, point in enumerate(calibrated_point):
             pixel_x = int(torch.floor(point[0]))
             pixel_y = int(torch.floor(point[1]))
@@ -203,9 +207,6 @@ class Fusion(object):
                     # print(point_image[pixel_x][pixel_y][idx_tensor[pixel_x][pixel_y]])
                     # print(idx_tensor[pixel_x][pixel_y])
                     idx_tensor[pixel_x][pixel_y] += 1
-                    # print(idx_tensor[pixel_x][pixel_y])
-                    tmp.append(idx)
-        # np.savetxt("fusion.txt",np.array(tmp),fmt='%6.6e')
         return point_image.cpu()
     
     def doitwell(self,planes):
@@ -235,7 +236,7 @@ class Fusion(object):
                     if idx is not None:
                         frustrum = np.delete(frustrum, idx)
                     projected_point["frustrum"] = frustrum
-                    
+                    projected_point["2d_box"]=box
                     if frustrum.size != 0:
                         # self.find_centroid2(point_planes[camera_num],box)
                         centroid, centorid_idx, frustrum_idx = self.find_centroid(xyz[frustrum], frustrum)
@@ -246,14 +247,16 @@ class Fusion(object):
                         projected_point["centroid"] = None
                         projected_point["centroid_idx"] = None
                         projected_point["frustrum_idx"]=None
+                        
                     frustrums.append(projected_point)
         return frustrums
-    def find_centroid2(self,plane,box):
-        center_pixel=10
-        center_plane=np.unique(plane[int((box[0]+box[1])/2)-center_pixel:int((box[0]+box[1])/2)+center_pixel, int((box[2]+box[3])/2)-center_pixel:int((box[2]+box[3])/2)+center_pixel])
-       
-        print(center_plane)
-        # return centroid,centroid_idx
+    
+    # def find_centroid2(self,plane,box):
+    #     center_pixel=10
+    #     center_plane=np.unique(plane[int((box[0]+box[1])/2)-center_pixel:int((box[0]+box[1])/2)+center_pixel, int((box[2]+box[3])/2)-center_pixel:int((box[2]+box[3])/2)+center_pixel])
+    #     print(center_plane)
+    #     # return centroid,centroid_idx
+
     def find_centroid(self, frustrum, frustrum_idx):
         min_radius = (frustrum[:, 0]**2+frustrum[:, 1]** 2+frustrum[:, 2]**2)**0.5
         min_radius = min_radius[np.argmin(min_radius)]
@@ -275,7 +278,7 @@ class Fusion(object):
         start_pos=0
         div=mp.cpu_count()
         end_pos=len(frustrums)
-        for i in tqdm(range(start_pos, end_pos + div, div)):
+        for i in range(start_pos, end_pos + div, div):
             current=tmp[start_pos:start_pos + div]
             self.make_cluster(current[0],all_point,que,0.007)
             res={}
