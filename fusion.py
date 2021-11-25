@@ -277,8 +277,7 @@ class Fusion(object):
             if f["centroid_idx"] is not None:
                 tmp.append(f)
         start_pos=0
-        div=2
-                # int(mp.cpu_count()/2)
+        div=mp.cpu_count()
         end_pos=len(frustrums)
         for i in tqdm(range(start_pos, end_pos + div, div)):
             current=tmp[start_pos:start_pos + div]
