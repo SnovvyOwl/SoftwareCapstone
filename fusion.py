@@ -135,16 +135,13 @@ class Fusion(object):
             img3d = {}
             if annos2d[i]["frame_id"][0][0:-4] != sequence:
                 self.current_intrinsics = annos2d[i]["intrinsic"]
-                self.current_extrinsics = self.make_extrinsic_mat(
-                    annos2d[i]["extrinsic"])
+                self.current_extrinsics = self.make_extrinsic_mat(annos2d[i]["extrinsic"])
                 annos2d[i]["frame_id"][0][0:-4] = sequence
-            xyz = np.load(self.root+sequence+'/0' +
-                          annos2d[i]["frame_id"][0][-3:]+".npy")[:, :3]
+            xyz = np.load(self.root+sequence+'/0'+annos2d[i]["frame_id"][0][-3:]+".npy")[:, :3]
             point_planes = self.pointcloud2image(xyz)
             # print("{0} ==> calibartion complete".format(
                 # sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
-            frustrum_for_onescene = self.make_frustrum(
-                annos2d[i]["anno"], xyz, point_planes)
+            frustrum_for_onescene = self.make_frustrum(annos2d[i]["anno"], xyz, point_planes)
             # seg_result = self.segmetation(xyz, frustrum_for_onescene)
             img3d["frustrum"] = frustrum_for_onescene
             img3d["frame_id"] = sequence
@@ -229,12 +226,10 @@ class Fusion(object):
                 if label != "unknown":
                     projected_point = {}
                     projected_point["label"] = label
-                    box = [annos[camera_num]["boxes"][i][0], annos[camera_num]["boxes"][i]
-                           [1], annos[camera_num]["boxes"][i][2], annos[camera_num]["boxes"][i][3]]
+                    box = [annos[camera_num]["boxes"][i][0], annos[camera_num]["boxes"][i][2], annos[camera_num]["boxes"][i][1], annos[camera_num]["boxes"][i][3]]
                     box = np.floor(box).astype(np.int)
                     # print(point_planes[camera_num][int((box[0]+box[1])/2)][(int(box[0]+box[1])/2)])
-                    frustrum = np.unique(
-                        point_planes[camera_num][box[0]:box[1], box[2]:box[3]].flatten("C"))
+                    frustrum = np.unique(point_planes[camera_num][box[0]:box[1], box[2]:box[3]].flatten("C"))
                     idx = np.where(frustrum == -1)
 
                     if idx is not None:
@@ -242,29 +237,30 @@ class Fusion(object):
                     projected_point["frustrum"] = frustrum
                     
                     if frustrum.size != 0:
-                        centroid, centorid_idx, frustrum_idx = self.find_centroid(
-                            xyz[frustrum], frustrum)
+                        # self.find_centroid2(point_planes[camera_num],box)
+                        centroid, centorid_idx, frustrum_idx = self.find_centroid(xyz[frustrum], frustrum)
                         projected_point["centroid"] = centroid
                         projected_point["centroid_idx"] = centorid_idx
                         projected_point["frustrum_idx"]=frustrum_idx
                     else:
                         projected_point["centroid"] = None
                         projected_point["centroid_idx"] = None
-                        projected_point["frustrum_idx"]=None
+                        # projected_point["frustrum_idx"]=None
                     frustrums.append(projected_point)
         return frustrums
-
+    def find_centroid2(self,plane,box):
+        center_pixel=10
+        center_plane=np.unique(plane[int((box[0]+box[1])/2)-center_pixel:int((box[0]+box[1])/2)+center_pixel, int((box[2]+box[3])/2)-center_pixel:int((box[2]+box[3])/2)+center_pixel])
+       
+        print(center_plane)
+        # return centroid,centroid_idx
     def find_centroid(self, frustrum, frustrum_idx):
-        min_radius = (frustrum[:, 0]**2+frustrum[:, 1]
-                      ** 2+frustrum[:, 2]**2)**0.5
+        min_radius = (frustrum[:, 0]**2+frustrum[:, 1]** 2+frustrum[:, 2]**2)**0.5
         min_radius = min_radius[np.argmin(min_radius)]
-        mean_radius = (frustrum[:, 0].mean()**2+frustrum[:,
-                       1].mean()**2+frustrum[:, 2].mean()**2)**0.5
-        centroid_vector = [frustrum[:, 0].mean()/mean_radius*min_radius, frustrum[:, 1].mean(
-        )/mean_radius*min_radius, (frustrum[:, 2]).mean()/mean_radius*min_radius]
+        mean_radius = (frustrum[:, 0].mean()**2+frustrum[:,1].mean()**2+frustrum[:, 2].mean()**2)**0.5
+        centroid_vector = [frustrum[:, 0].mean()/mean_radius*min_radius, frustrum[:, 1].mean()/mean_radius*min_radius, (frustrum[:, 2]).mean()/mean_radius*min_radius]
         centroid = None
-        radius = (frustrum[:, 1]-centroid_vector[1])**2 + \
-            (frustrum[:, 2]-centroid_vector[2])**2
+        radius = (frustrum[:, 1]-centroid_vector[1])**2 + (frustrum[:, 2]-centroid_vector[2])**2
         centroid = frustrum[np.argmin(radius)]
         centroid_idx = frustrum_idx[np.argmin(radius)]
         return centroid, centroid_idx, np.argmin(radius)
@@ -286,7 +282,7 @@ class Fusion(object):
             if current!=[]:
                 procs=[]
                 for frustrum in current:
-                    proc=mp.Process(target=self.make_cluster,args=(frustrum,all_point,que,0.007))
+                    proc=mp.Process(target=self.make_cluster,args=(frustrum,all_point,que,0.05))
                     procs.append(proc)
                     proc.start()
                 for proc in procs:

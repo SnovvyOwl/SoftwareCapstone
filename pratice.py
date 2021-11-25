@@ -183,44 +183,44 @@ if __name__ == "__main__":
 
     with open("anno2d.pkl",'rb')as f:
         annos2d=pickle.load(f)
-    # with open("frustrum.pkl",'rb')as f:
-    #     frustrum=pickle.load(f)
+    with open("frustrum.pkl",'rb')as f:
+        frustrum=pickle.load(f)
     xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/0000.npy")
     xyz=xyz[:,:3]
     fu.set_matrix()
     plane=fu.pointcloud2image(xyz)
-    res=fu.doitwell(plane)
-    frustrum,id=image2point(xyz,res)
+    r=fu.make_frustrum(annos2d[0]["anno"],xyz,plane)
+    # frustrum,id=image2point(xyz,res)
     frustrums=[]
-    # for f in frustrum[0]["frustrum"]:
-    #     if f["centroid_idx"] is not None:
-    #         frustrums.append(f)
+    for f in frustrum[0]["frustrum"]:
+        if f["centroid_idx"] is not None:
+            frustrums.append(f)
     pcds=[]
     vecs=[]
-    # for f in frustrums:
-    #     if f["label"]=='Pedestrian':
-    #         pcd = o3d.geometry.PointCloud()
-    #         pcd.points = o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-    #         pcd.paint_uniform_color([random.randint(0,1), 0, 0])    
-    #     elif f["label"]=='Vehicle':
-    #         pcd= o3d.geometry.PointCloud()
-    #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-    #         pcd.paint_uniform_color([0,0, random.randint(0,1)])
-    #     elif f["label"]=='Cyclist':
-    #         pcd= o3d.geometry.PointCloud()
-    #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-    #         pcd.paint_uniform_color([0, random.randint(0,1), 0])
-    #     pcds.append(pcd)
-    #     vecs=vecs+list(f["frustrum"])
+    for f in frustrums:
+        if f["label"]=='Pedestrian':
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(xyz[f["frustrum"]])
+            pcd.paint_uniform_color([random.randint(0,1), 0, 0])    
+        elif f["label"]=='Vehicle':
+            pcd= o3d.geometry.PointCloud()
+            pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
+            pcd.paint_uniform_color([0,0, random.randint(0,1)])
+        elif f["label"]=='Cyclist':
+            pcd= o3d.geometry.PointCloud()
+            pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
+            pcd.paint_uniform_color([0, random.randint(0,1), 0])
+        pcds.append(pcd)
+        vecs=vecs+list(f["frustrum"])
     
     box=make_3dBox(annos3d[0])
-    cameranum=0
-    if cameranum in [0,1,2]:
-        point, idx=projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
+    # cameranum=0
+    # if cameranum in [0,1,2]:
+    #     point, idx=projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
     # elif cameranum in [3,4]:
     #     point, idx =projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
     cp_xyz= xyz.copy()
-    cp_xyz=np.delete(xyz,id,axis=0)
+    cp_xyz=np.delete(xyz,vecs,axis=0)
   
     all=o3d.geometry.PointCloud()
     all.points=o3d.utility.Vector3dVector(cp_xyz)
@@ -229,17 +229,14 @@ if __name__ == "__main__":
     # point.points=o3d.utility.Vector3dVector(xyz[idx])
     # point.paint_uniform_color([0,1,0])
     # o3d.visualization.draw_geometries([all,point])
-    res.append(all)
+    # res.append(all)
     vis=o3d.visualization.Visualizer()
     vis.create_window()
     for b in box:
         vis.add_geometry(b)
     vis.add_geometry(all)
-    vis.add_geometry(frustrum[0])
-    vis.add_geometry(frustrum[1])
-    vis.add_geometry(frustrum[2])
-    vis.add_geometry(frustrum[3])
-    vis.add_geometry(frustrum[4])
+    for f in pcds:
+        vis.add_geometry(f)
     vis.get_render_option().line_width = 100
     vis.update_renderer()
 
