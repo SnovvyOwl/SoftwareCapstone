@@ -160,50 +160,57 @@ class Fusion(object):
         one = np.ones((len(lidar), 1))
         cp_lidar = np.concatenate((lidar, one), axis=1)
         cp_lidar = torch.from_numpy(cp_lidar).cuda()
+
         for camera_num in range(3):
             to_plane = torch.matmul(torch.linalg.inv(torch.from_numpy(self.current_extrinsics[camera_num]).type(torch.float64).cuda()), cp_lidar.T).T
-            change_coordinate = torch.stack([-1*to_plane[:, 1], -1*to_plane[:, 2], to_plane[:, 0]], dim=0)#.cpu().numpy().T
+            change_coordinate = torch.stack([-1*to_plane[:, 1], -1*to_plane[:, 2], to_plane[:, 0]], dim=0).cpu().numpy().T
             # img=[]
             # for point in change_coordinate:
             #     if point[2]>0:
             #         img.append(point)
-            # change_coordinate=torch.tensor(img).cuda().T
-            # negative_idx=np.where(change_coordinate[:,2]>0)
-            # change_coordinate=np.delete(change_coordinate,negative_idx,axis=0).T
-            # change_coordinate=torch.from_numpy(change_coordinate).type(torch.float64).cuda()
+            lidar_idx=np.array((range(len(lidar))))
+            negative_idx=np.where(change_coordinate[:,2]<=0)
+            change_coordinate=np.delete(change_coordinate,negative_idx,axis=0).T
+            lidar_idx=np.delete(lidar_idx,negative_idx)
+            change_coordinate=torch.from_numpy(change_coordinate).type(torch.float64).cuda()
             to_image = torch.matmul(torch.from_numpy(self.current_intrinsics[camera_num]).type(torch.float64).cuda(), change_coordinate).T
             to_image = to_image/to_image[:, 2, None]
-            point_plane = self.point_to_tensor(to_image, 1920, 1280)
+            point_plane = self.point_to_tensor(to_image,lidar_idx, 1920, 1280)
             point_planes.append(point_plane.numpy())
             # print("calibaration complete camera number: {0}".format(camera_num))
         for camera_num in [3, 4]:
             to_plane = torch.matmul(torch.linalg.inv(torch.from_numpy(self.current_extrinsics[camera_num]).type(torch.float64).cuda()), cp_lidar.T).T
-            change_coordinate = torch.stack([-1*to_plane[:, 1], -1*to_plane[:, 2], to_plane[:, 0]], dim=0).cpu().numpy()
-            negative_idx=np.where(change_coordinate[1,:]<0)
-            change_coordinate=np.delete(change_coordinate,negative_idx,axis=1)
+            change_coordinate = torch.stack([-1*to_plane[:, 1], -1*to_plane[:, 2], to_plane[:, 0]], dim=0).cpu().numpy().T
+            lidar_idx=np.array((range(len(lidar))))
+            negative_idx=np.where(change_coordinate[:,2]<=0)
+            change_coordinate=np.delete(change_coordinate,negative_idx,axis=0).T
+            lidar_idx=np.delete(lidar_idx,negative_idx)
             change_coordinate=torch.from_numpy(change_coordinate).type(torch.float64).cuda()
             to_image = torch.matmul(torch.from_numpy(self.current_intrinsics[camera_num]).type(torch.float64).cuda(), change_coordinate).T
             to_image = to_image/to_image[:, 2, None]
-            point_plane = self.point_to_tensor(to_image, 1920, 886)
+            point_plane = self.point_to_tensor(to_image, lidar_idx,1920, 886)
             point_planes.append(point_plane.numpy())
             # print("calibaration complete camera number: {0}".format(camera_num))
         return point_planes
 
-    def point_to_tensor(self, calibrated_point, width, height):
+    def point_to_tensor(self, calibrated_point, lidar_idx,width, height):
         point_image = -1 * torch.ones([width, height, 4], dtype=torch.int32, device='cuda:0')
         idx_tensor = torch.zeros([width, height], dtype=torch.int32)
+        tmp=[]
         for idx, point in enumerate(calibrated_point):
             pixel_x = int(torch.floor(point[0]))
             pixel_y = int(torch.floor(point[1]))
             if pixel_x > 0 and pixel_x < width:
                 if pixel_y > 0 and pixel_y < height:
-                    point_image[pixel_x][pixel_y][idx_tensor[pixel_x]
-                                                  [pixel_y]] = idx
+                    point_image[pixel_x][pixel_y][idx_tensor[pixel_x][pixel_y]] =lidar_idx[idx]
                     # print(point_image[pixel_x][pixel_y][idx_tensor[pixel_x][pixel_y]])
                     # print(idx_tensor[pixel_x][pixel_y])
                     idx_tensor[pixel_x][pixel_y] += 1
                     # print(idx_tensor[pixel_x][pixel_y])
+                    tmp.append(idx)
+        # np.savetxt("fusion.txt",np.array(tmp),fmt='%6.6e')
         return point_image.cpu()
+    
     def doitwell(self,planes):
         frustrums=[]
         for plane in planes:
@@ -212,6 +219,7 @@ class Fusion(object):
             if idx is not None:
                 frustrum = np.delete(frustrum, idx)
             frustrums.append(frustrum)
+    
         return frustrums
     def make_frustrum(self, annos, xyz, point_planes):
         frustrums = []
