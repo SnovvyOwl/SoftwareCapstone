@@ -180,7 +180,6 @@ if __name__ == "__main__":
     fu=Fusion( root,ckpt)
     with open("anno3d.pkl",'rb')as f:
         annos3d=pickle.load(f)
-
     with open("anno2d.pkl",'rb')as f:
         annos2d=pickle.load(f)
     with open("frustrum.pkl",'rb')as f:
@@ -188,6 +187,7 @@ if __name__ == "__main__":
     xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/0000.npy")
     xyz=xyz[:,:3]
     fu.set_matrix()
+    fu.box_is_in_plane(annos3d[0])
     plane=fu.pointcloud2image(xyz)
     r=fu.make_frustrum(annos2d[0]["anno"],xyz,plane)
     # frustrum,id=image2point(xyz,res)

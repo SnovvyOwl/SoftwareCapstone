@@ -324,10 +324,16 @@ class Fusion(object):
                         found=True
                         break
             if found is False:
-                frustrum_per_onescene[i]["is_generated"]=True
-
+                if frustrum["centroid"] is not None:
+                    frustrum_per_onescene[i]["is_generated"]=True
+                    self.make_3d_box(frustrum)
+                else:
+                    frustrum_per_onescene[i]["is_generated"]=False
+                    frustrum_per_onescene[i]["3d_box"]=None
         return frustrum_per_onescene
 
+    def make_3d_box(self,frusturm):
+        return NotImplementedError
     def find_centroid(self, frustrum, frustrum_idx):
         min_radius = (frustrum[:, 0]**2+frustrum[:, 1]** 2+frustrum[:, 2]**2)**0.5
         min_radius = min_radius[np.argmin(min_radius)]
