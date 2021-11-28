@@ -295,7 +295,7 @@ class Fusion(object):
                     proc.close()
             start_pos = start_pos + div
         return seg_res
-
+#   box ->2D Image
     def make_cluster(self,frustrum, all_point,que,max_radius=0.01):
         res={}
         res["label"]=frustrum["label"]
