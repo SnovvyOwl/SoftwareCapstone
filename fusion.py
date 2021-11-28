@@ -1,6 +1,7 @@
 from operator import pos
 from re import I, T
 import numpy as np
+from numpy.core.numeric import False_
 import open3d as o3d
 from modelmanager import ModelManager
 import numpy as np
@@ -11,6 +12,25 @@ import multiprocessing as mp
 from tqdm import tqdm
 CAMMERA_NUM = 5
 
+def iou2d(box1,box2):
+
+    # box = (x1, y1, x2, y2)
+    box1_area = (box1[2] - box1[0] + 1) * (box1[3] - box1[1] + 1)
+    box2_area = (box2[2] - box2[0] + 1) * (box2[3] - box2[1] + 1)
+
+    # obtain x1, y1, x2, y2 of the intersection
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+
+    # compute the width and height of the intersection
+    w = max(0, x2 - x1 + 1)
+    h = max(0, y2 - y1 + 1)
+
+    inter = w * h
+    iou = inter / (box1_area + box2_area - inter)
+    return iou
 
 def make_3dBox(anno):
     boxes = []
@@ -138,8 +158,10 @@ class Fusion(object):
             point_planes = self.pointcloud2image(xyz)
             # print("{0} ==> calibartion complete".format(sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
             frustrum_for_onescene = self.make_frustrum(annos2d[i]["anno"], xyz, point_planes)
+            box3d_to_2d=self.box_is_in_plane(annos3d[i])
             # seg_result = self.segmetation(xyz, frustrum_for_onescene)
             res=self.is_box_in_frustrum(frustrum_for_onescene,annos3d[i])
+            
             img3d["frustrum"] = frustrum_for_onescene
             img3d["frame_id"] = sequence
             img3d["filename"] = annos2d[i]["image_id"]
@@ -148,20 +170,11 @@ class Fusion(object):
         with open("frustrum.pkl", 'wb') as f:
             pickle.dump(result, f)
         return result
-    
-    def is_box_in_frustrum(self,frustrum_per_onescene,boxes):
-        corner_boxes=[]
-        for box in boxes["boxes_lidar"]:
-            corner=boxes_to_corners_3d(box)
-            s
-            corner_boxes.append(corner)
-        for i ,frustrum in enumerate(frustrum_per_onescene):
-            for box in corner_boxes:
-                frustrum["frustrum"]
-        
-        return NotImplementedError
+
 
     def pointcloud2image(self, lidar):
+        #input Lidar PonitCloud
+        #return lidar point plane
         point_planes = []
         one = np.ones((len(lidar), 1))
         cp_lidar = np.concatenate((lidar, one), axis=1)
@@ -217,8 +230,8 @@ class Fusion(object):
             if idx is not None:
                 frustrum = np.delete(frustrum, idx)
             frustrums.append(frustrum)
-    
         return frustrums
+
     def make_frustrum(self, annos, xyz, point_planes):
         frustrums = []
         for camera_num in range(CAMMERA_NUM):
@@ -227,14 +240,25 @@ class Fusion(object):
                 if label != "unknown":
                     projected_point = {}
                     projected_point["label"] = label
-                    box = [annos[camera_num]["boxes"][i][0], annos[camera_num]["boxes"][i][2], annos[camera_num]["boxes"][i][1], annos[camera_num]["boxes"][i][3]]
+                    #box = [annos[camera_num]["boxes"][i][0], annos[camera_num]["boxes"][i][2], annos[camera_num]["boxes"][i][1], annos[camera_num]["boxes"][i][3]]
+                    box=annos[camera_num]["boxes"][i]
                     box = np.floor(box).astype(np.int)
                     # print(point_planes[camera_num][int((box[0]+box[1])/2)][(int(box[0]+box[1])/2)])
-                    frustrum = np.unique(point_planes[camera_num][box[0]:box[1], box[2]:box[3]].flatten("C"))
+                    frustrum = np.unique(point_planes[camera_num][box[0]:box[2], box[1]:box[3]].flatten("C"))
                     idx = np.where(frustrum == -1)
-
                     if idx is not None:
                         frustrum = np.delete(frustrum, idx)
+                    x_extend=((box[2]-box[0])*1.1)/2
+                    x_center=(box[2]+box[0])/2
+                    y_extend=((box[3]-box[1])*1.1)/2
+                    y_center=(box[3]+box[1])/2
+                    large_box=[x_center-x_extend,y_center-y_extend,x_center+x_extend,y_center+y_extend]
+                    large_box = np.floor(large_box).astype(np.int)
+                    large_frustrum = np.unique(point_planes[camera_num][large_box[0]:large_box[2], large_box[1]:large_box[3]].flatten("C"))
+                    idx = np.where(large_frustrum  == -1)
+                    if idx is not None:
+                        large_frustrum = np.delete(large_frustrum , idx)
+                    projected_point["large_frustrum"]=large_frustrum
                     projected_point["frustrum"] = frustrum
                     projected_point["2d_box"]=box
                     if frustrum.size != 0:
@@ -246,16 +270,63 @@ class Fusion(object):
                     else:
                         projected_point["centroid"] = None
                         projected_point["centroid_idx"] = None
-                        projected_point["frustrum_idx"]=None
+                        projected_point["frustrum_idx"]=None    
                         
                     frustrums.append(projected_point)
         return frustrums
+ 
+   
+    def box_is_in_plane(self,annos):
+        #  3D box ->2D Image
+        # INPUT PV-RCNN 3D Boxes Oneframe
+        # Return camera_num, pixel
+        cp_box=annos["boxes_lidar"].copy()
+        box_center=cp_box[:,:3].copy()
+        box_plane=self.pointcloud2image(box_center)
+        res=[]
+        for camera_num in range(CAMMERA_NUM):
+            plane=[]
+            maked_2dbox_with_label={}
+            box_idx=np.unique(box_plane[camera_num].flatten("C"))
+            idx = np.where(box_idx == -1)
+            if idx is not None:
+                box_idx = np.delete(box_idx, idx)
+            corners_3d=boxes_to_corners_3d(cp_box[box_idx,:])
+            for i,box in enumerate(corners_3d):
+                box2d=self.make_2d_box(camera_num,box)
+                maked_2dbox_with_label["3d_box"]=box
+                maked_2dbox_with_label["box"]=box2d
+                maked_2dbox_with_label["label"]=annos["name"][box_idx[i]]
+                plane.append(maked_2dbox_with_label)
+            res.append(plane)
+        return res
     
-    # def find_centroid2(self,plane,box):
-    #     center_pixel=10
-    #     center_plane=np.unique(plane[int((box[0]+box[1])/2)-center_pixel:int((box[0]+box[1])/2)+center_pixel, int((box[2]+box[3])/2)-center_pixel:int((box[2]+box[3])/2)+center_pixel])
-    #     print(center_plane)
-    #     # return centroid,centroid_idx
+    def make_2d_box(self,camera_num,box):
+        cp_box=box.copy()
+        one=np.ones((len(box),1))
+        cp_box=np.concatenate((cp_box,one),axis=1)
+        to_plane = np.matmul(np.linalg.inv(self.current_extrinsics[camera_num]), cp_box.T).T
+        change_coordinate =np.concatenate(([-1*to_plane[:,1].T],[-1*to_plane[:,2].T],[to_plane[:,0].T]),axis=0)
+        to_image = np.matmul(self.current_intrinsics[camera_num],change_coordinate).T
+        to_image = to_image/to_image[:, 2, None]
+        box=[np.min(to_image[:,0]),np.min(to_image[:,1]),np.max(to_image[:,0]),np.max(to_image[:,1])]
+        return box
+
+    def is_box_in_frustrum(self,frustrum_per_onescene,boxes):
+        for i,frustrum in enumerate(frustrum_per_onescene):
+            found=False
+            for box in boxes:
+                iou=iou2d(box["box"],frustrum["2D_box"])
+                if iou>0.85:
+                    if frustrum["label"]==box["label"]:
+                        frustrum_per_onescene[i]["3d_box"]=box["3d_box"]
+                        frustrum_per_onescene[i]["is_generated"]=False
+                        found=True
+                        break
+            if found is False:
+                frustrum_per_onescene[i]["is_generated"]=True
+
+        return frustrum_per_onescene
 
     def find_centroid(self, frustrum, frustrum_idx):
         min_radius = (frustrum[:, 0]**2+frustrum[:, 1]** 2+frustrum[:, 2]**2)**0.5
@@ -295,7 +366,7 @@ class Fusion(object):
                     proc.close()
             start_pos = start_pos + div
         return seg_res
-#   box ->2D Image
+
     def make_cluster(self,frustrum, all_point,que,max_radius=0.01):
         res={}
         res["label"]=frustrum["label"]
