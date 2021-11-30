@@ -325,29 +325,30 @@ class Fusion(object):
         return frustrum_per_onescene
 
     def make_3d_box(self,frustrum_point,centroid_point,frustrum_idx,centroid_idx):
-        seg_cluster,seg_idx=self.segmentation(frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.01)
-
+        seg_cluster,seg_idx=self.segmentation(frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.1)
+        
         return NotImplementedError
 
-    def segmentation(self,frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.01):
+    def segmentation(self,frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.1):
         points = Queue()
         cp_frustrum_point=frustrum_point.copy()
         cp_frustrum_idx=frustrum_idx.copy()
         points.put(centroid_point)
         cluster=[]
-        cluster.append(centroid_idx)
+        idx=[]
         while points.empty() != True:
             leaf = points.get()
             radius = np.array((cp_frustrum_point[:, 0]-leaf[0])**2+(cp_frustrum_point[:, 1]-leaf[1])**2+(cp_frustrum_point[:, 2]-leaf[2])**2)
             cluster_idx = np.where(radius < max_radius)
-            cluster.extend(cp_frustrum_idx[cluster_idx])
+            idx.extend(cp_frustrum_idx[cluster_idx])
             next_cp_frustrum_idx = np.delete(cp_frustrum_idx, cluster_idx[0])
             next_cp_frustrum_point = np.delete(cp_frustrum_point, cluster_idx[0], 0)
             for i in list(cluster_idx[0][:]):
+                cluster.append(cp_frustrum_point[i])
                 points.put(cp_frustrum_point[i])
             cp_frustrum_idx = next_cp_frustrum_idx
             cp_frustrum_point = next_cp_frustrum_point
-        return cluster, cluster_idx
+        return cluster, idx
 
     def find_centroid(self, frustrum, frustrum_idx):
         #function: Find Frustrum Centroid
