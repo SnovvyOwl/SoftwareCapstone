@@ -13,10 +13,11 @@ from tqdm import tqdm
 CAMMERA_NUM = 5
 
 def iou2d(box1,box2):
-
+    # input  : box1[4], box2[4]
+    # output : IoU
     # box = (x1, y1, x2, y2)
-    box1_area = (box1[2] - box1[0] + 1) * (box1[3] - box1[1] + 1)
-    box2_area = (box2[2] - box2[0] + 1) * (box2[3] - box2[1] + 1)
+    box1_area = (box1[2] - box1[0] ) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0] ) * (box2[3] - box2[1])
 
     # obtain x1, y1, x2, y2 of the intersection
     x1 = max(box1[0], box2[0])
@@ -25,24 +26,24 @@ def iou2d(box1,box2):
     y2 = min(box1[3], box2[3])
 
     # compute the width and height of the intersection
-    w = max(0, x2 - x1 + 1)
-    h = max(0, y2 - y1 + 1)
+    w = max(0, x2 - x1)
+    h = max(0, y2 - y1)
 
     inter = w * h
     iou = inter / (box1_area + box2_area - inter)
     return iou
 
-def make_3dBox(anno):
-    boxes = []
-    lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5],
-             [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
-    corners3d = boxes_to_corners_3d(anno["boxes_lidar"])
-    for box in corners3d:
-        box3d = o3d.geometry.LineSet()
-        box3d.points = o3d.utility.Vector3dVector(box)
-        box3d.lines = o3d.utility.Vector2iVector(lines)
-        boxes.append(box3d)
-    return boxes
+# def make_3dBox(anno):
+#     boxes = []
+#     lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5],
+#              [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
+#     corners3d = boxes_to_corners_3d(anno["boxes_lidar"])
+#     for box in corners3d:
+#         box3d = o3d.geometry.LineSet()
+#         box3d.points = o3d.utility.Vector3dVector(box)
+#         box3d.lines = o3d.utility.Vector2iVector(lines)
+#         boxes.append(box3d)
+#     return boxes
 
 
 def check_numpy_to_torch(x):
@@ -132,11 +133,7 @@ class Fusion(object):
             extrinscis.append(param[i])
         return extrinscis
     
-    def set_matrix(self):
-        with open("anno2d.pkl", 'rb')as f:
-            annos2d = pickle.load(f)
-        self.current_intrinsics = annos2d[0]["intrinsic"]
-        self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
+
     
     def calibration(self):
         # annos3d, annos2d = self.val.val()
@@ -160,7 +157,7 @@ class Fusion(object):
             frustrum_for_onescene = self.make_frustrum(annos2d[i]["anno"], xyz, point_planes)
             box3d_to_2d=self.box_is_in_plane(annos3d[i])
             # seg_result = self.segmetation(xyz, frustrum_for_onescene)
-            res=self.is_box_in_frustrum(frustrum_for_onescene,annos3d[i])
+            res=self.is_box_in_frustrum(frustrum_for_onescene,box3d_to_2d,xyz)
             
             img3d["frustrum"] = frustrum_for_onescene
             img3d["frame_id"] = sequence
@@ -221,16 +218,7 @@ class Fusion(object):
                     # print(idx_tensor[pixel_x][pixel_y])
                     idx_tensor[pixel_x][pixel_y] += 1
         return point_image.cpu()
-    
-    def doitwell(self,planes):
-        frustrums=[]
-        for plane in planes:
-            frustrum=np.unique(plane.flatten("C"))
-            idx = np.where(frustrum == -1)
-            if idx is not None:
-                frustrum = np.delete(frustrum, idx)
-            frustrums.append(frustrum)
-        return frustrums
+ 
 
     def make_frustrum(self, annos, xyz, point_planes):
         frustrums = []
@@ -297,7 +285,8 @@ class Fusion(object):
                 maked_2dbox_with_label["3d_box"]=box
                 maked_2dbox_with_label["box"]=box2d
                 maked_2dbox_with_label["label"]=annos["name"][box_idx[i]]
-                plane.append(maked_2dbox_with_label)
+                plane.append(maked_2dbox_with_label.copy())
+        
             res.append(plane)
         return res
     
@@ -312,29 +301,58 @@ class Fusion(object):
         box=[np.min(to_image[:,0]),np.min(to_image[:,1]),np.max(to_image[:,0]),np.max(to_image[:,1])]
         return box
 
-    def is_box_in_frustrum(self,frustrum_per_onescene,boxes):
+    def is_box_in_frustrum(self,frustrum_per_onescene,boxes,xyz):
         for i,frustrum in enumerate(frustrum_per_onescene):
             found=False
-            for box in boxes:
-                iou=iou2d(box["box"],frustrum["2D_box"])
-                if iou>0.85:
-                    if frustrum["label"]==box["label"]:
-                        frustrum_per_onescene[i]["3d_box"]=box["3d_box"]
-                        frustrum_per_onescene[i]["is_generated"]=False
-                        found=True
-                        break
+            for box_in_camera_num in boxes:
+                for  box in box_in_camera_num:
+                    iou=iou2d(box["box"],frustrum["2d_box"])
+                    
+                    if iou>0.5:
+                        if frustrum["label"]==box["label"]:
+                            print(iou)
+                            frustrum_per_onescene[i]["3d_box"]=box["3d_box"]
+                            frustrum_per_onescene[i]["is_generated"]=False
+                            found=True
+                            break
             if found is False:
                 if frustrum["centroid"] is not None:
                     frustrum_per_onescene[i]["is_generated"]=True
-                    self.make_3d_box(frustrum)
+                    gen_box=self.make_3d_box(xyz[frustrum["large_frustrum"]],frustrum["centroid"],frustrum["large_frustrum"],frustrum["centroid_idx"])
                 else:
                     frustrum_per_onescene[i]["is_generated"]=False
                     frustrum_per_onescene[i]["3d_box"]=None
         return frustrum_per_onescene
 
-    def make_3d_box(self,frusturm):
+    def make_3d_box(self,frustrum_point,centroid_point,frustrum_idx,centroid_idx):
+        seg_cluster,seg_idx=self.segmentation(frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.01)
+
         return NotImplementedError
+
+    def segmentation(self,frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.01):
+        points = Queue()
+        cp_frustrum_point=frustrum_point.copy()
+        cp_frustrum_idx=frustrum_idx.copy()
+        points.put(centroid_point)
+        cluster=[]
+        cluster.append(centroid_idx)
+        while points.empty() != True:
+            leaf = points.get()
+            radius = np.array((cp_frustrum_point[:, 0]-leaf[0])**2+(cp_frustrum_point[:, 1]-leaf[1])**2+(cp_frustrum_point[:, 2]-leaf[2])**2)
+            cluster_idx = np.where(radius < max_radius)
+            cluster.extend(cp_frustrum_idx[cluster_idx])
+            next_cp_frustrum_idx = np.delete(cp_frustrum_idx, cluster_idx[0])
+            next_cp_frustrum_point = np.delete(cp_frustrum_point, cluster_idx[0], 0)
+            for i in list(cluster_idx[0][:]):
+                points.put(cp_frustrum_point[i])
+            cp_frustrum_idx = next_cp_frustrum_idx
+            cp_frustrum_point = next_cp_frustrum_point
+        return cluster, cluster_idx
+
     def find_centroid(self, frustrum, frustrum_idx):
+        #function: Find Frustrum Centroid
+        #input: frustrum(x,y,z),frustrum_idx (n)-> points idx in this frame
+        #output: centorid(x,y,z),centroid_idx(n)-> points idx in this frame ,frustrum inner index
         min_radius = (frustrum[:, 0]**2+frustrum[:, 1]** 2+frustrum[:, 2]**2)**0.5
         min_radius = min_radius[np.argmin(min_radius)]
         mean_radius = (frustrum[:, 0].mean()**2+frustrum[:,1].mean()**2+frustrum[:, 2].mean()**2)**0.5
@@ -344,64 +362,80 @@ class Fusion(object):
         centroid = frustrum[np.argmin(radius)]
         centroid_idx = frustrum_idx[np.argmin(radius)]
         return centroid, centroid_idx, np.argmin(radius)
+    
+    
+    #Test Code
+    def set_matrix(self):
+        with open("anno2d.pkl", 'rb')as f:
+            annos2d = pickle.load(f)
+        self.current_intrinsics = annos2d[0]["intrinsic"]
+        self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
+    def doitwell(self,planes):
+        frustrums=[]
+        for plane in planes:
+            frustrum=np.unique(plane.flatten("C"))
+            idx = np.where(frustrum == -1)
+            if idx is not None:
+                frustrum = np.delete(frustrum, idx)
+            frustrums.append(frustrum)
+        return frustrums
+    # def segmetation(self, all_point, frustrums):
+    #     seg_res=[]
+    #     que=mp.Queue()
+    #     tmp=[]
+    #     for f in frustrums:
+    #         if f["centroid_idx"] is not None:
+    #             tmp.append(f)
+    #     start_pos=0
+    #     div=mp.cpu_count()
+    #     end_pos=len(frustrums)
+    #     for i in range(start_pos, end_pos + div, div):
+    #         current=tmp[start_pos:start_pos + div]
+    #         self.make_cluster(current[0],all_point,que,0.007)
+    #         res={}
+    #         if current!=[]:
+    #             procs=[]
+    #             for frustrum in current:
+    #                 proc=mp.Process(target=self.make_cluster,args=(frustrum,all_point,que,0.05))
+    #                 procs.append(proc)
+    #                 proc.start()
+    #             for proc in procs:
+    #                 seg_res.append(que.get())
+    #                 proc.join()
+    #             for proc in procs:
+    #                 proc.close()
+    #         start_pos = start_pos + div
+    #     return seg_res
 
-    def segmetation(self, all_point, frustrums):
-        seg_res=[]
-        que=mp.Queue()
-        tmp=[]
-        for f in frustrums:
-            if f["centroid_idx"] is not None:
-                tmp.append(f)
-        start_pos=0
-        div=mp.cpu_count()
-        end_pos=len(frustrums)
-        for i in range(start_pos, end_pos + div, div):
-            current=tmp[start_pos:start_pos + div]
-            self.make_cluster(current[0],all_point,que,0.007)
-            res={}
-            if current!=[]:
-                procs=[]
-                for frustrum in current:
-                    proc=mp.Process(target=self.make_cluster,args=(frustrum,all_point,que,0.05))
-                    procs.append(proc)
-                    proc.start()
-                for proc in procs:
-                    seg_res.append(que.get())
-                    proc.join()
-                for proc in procs:
-                    proc.close()
-            start_pos = start_pos + div
-        return seg_res
-
-    def make_cluster(self,frustrum, all_point,que,max_radius=0.01):
-        res={}
-        res["label"]=frustrum["label"]
-        res["centroid"]=frustrum["centroid"]
-        res["centroid_idx"]=frustrum["centroid_idx"]
-        cluster = []
-        centroid=frustrum["centroid"]
-        centroid_idx=frustrum["centroid_idx"]
-        points = Queue()
-        idices = Queue()
-        points.put(centroid)
-        idx=list(range(all_point.shape[0]))
-        idices.put(idx[centroid_idx])
-        cluster.append(idx[centroid_idx])
-        cp_all_point = all_point.copy()
-        cp_all_point = np.delete(cp_all_point, centroid_idx, 0)
-        idx = np.delete(idx, centroid_idx)
-        while points.empty() != True:
-            leaf = points.get()
-            radius = np.array((cp_all_point[:, 0]-leaf[0])**2+(cp_all_point[:, 1]-leaf[1])**2+(cp_all_point[:, 2]-leaf[2])**2)
-            cluster_idx = np.where(radius < max_radius)
-            cluster.extend(idx[cluster_idx[0][:]])
-            next_idx = np.delete(idx, cluster_idx[0])
-            next_cp_all_point = np.delete(cp_all_point, cluster_idx[0], 0)
-            for i in list(cluster_idx[0][:]):
-                points.put(cp_all_point[i])
-            idx = next_idx
-            cp_all_point = next_cp_all_point   
-        que.put(cluster)
+    # def make_cluster(self,frustrum, all_point,que,max_radius=0.01):
+    #     res={}
+    #     res["label"]=frustrum["label"]
+    #     res["centroid"]=frustrum["centroid"]
+    #     res["centroid_idx"]=frustrum["centroid_idx"]
+    #     cluster = []
+    #     centroid=frustrum["centroid"]
+    #     centroid_idx=frustrum["centroid_idx"]
+    #     points = Queue()
+    #     idices = Queue()
+    #     points.put(centroid)
+    #     idx=list(range(all_point.shape[0]))
+    #     idices.put(idx[centroid_idx])
+    #     cluster.append(idx[centroid_idx])
+    #     cp_all_point = all_point.copy()
+    #     cp_all_point = np.delete(cp_all_point, centroid_idx, 0)
+    #     idx = np.delete(idx, centroid_idx)
+    #     while points.empty() != True:
+    #         leaf = points.get()
+    #         radius = np.array((cp_all_point[:, 0]-leaf[0])**2+(cp_all_point[:, 1]-leaf[1])**2+(cp_all_point[:, 2]-leaf[2])**2)
+    #         cluster_idx = np.where(radius < max_radius)
+    #         cluster.extend(idx[cluster_idx[0][:]])
+    #         next_idx = np.delete(idx, cluster_idx[0])
+    #         next_cp_all_point = np.delete(cp_all_point, cluster_idx[0], 0)
+    #         for i in list(cluster_idx[0][:]):
+    #             points.put(cp_all_point[i])
+    #         idx = next_idx
+    #         cp_all_point = next_cp_all_point   
+    #     que.put(cluster)
 
 
 if __name__ == "__main__":
