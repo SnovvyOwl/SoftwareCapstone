@@ -325,8 +325,21 @@ class Fusion(object):
         return frustrum_per_onescene
 
     def make_3d_box(self,frustrum_point,centroid_point,frustrum_idx,centroid_idx):
+        """
+        Returns:
+            7 -------- 4
+           /|         /|
+          6 -------- 5 .
+          | |        | |
+          . 3 -------- 0
+          |/         |/
+          2 -------- 1
+        Args:
+            boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
+
+        """
         seg_cluster,seg_idx=self.segmentation(frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.1)
-        
+        seg_cluster
         return NotImplementedError
 
     def segmentation(self,frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.1):
