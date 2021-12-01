@@ -330,7 +330,7 @@ class Fusion(object):
                 for  box in box_in_camera_num:
                     iou=iou2d(box["box"],frustum["2d_box"])
                     
-                    if iou>0.5:
+                    if iou>0.2:
                         if frustum["label"]==box["label"]:
                             # print(iou)
                             frustum_per_onescene[i]["3d_box"]=box["3d_box"]
@@ -360,10 +360,10 @@ class Fusion(object):
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
 
         """
-        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.08)
+        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.07)
         return seg_idx
 
-    def segmentation(self,frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.08):
+    def segmentation(self,frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.0):
         points = Queue()
         cp_frustum_point=frustum_point.copy()
         cp_frustum_idx=frustum_idx.copy()

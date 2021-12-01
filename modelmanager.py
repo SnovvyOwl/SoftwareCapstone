@@ -27,9 +27,9 @@ def cocol2waymo(label):
         return WAYMO_CLASSES[1]
     elif label in [2, 4]:
         return WAYMO_CLASSES[4]
-    elif label == 10:
+    elif label in [10,13]:
         return WAYMO_CLASSES[3]
-    elif label not in range(1, 11):
+    elif label not in [1,2,3,4,5,6,7,8,9,10,13]:
         return WAYMO_CLASSES[0]
 
 
