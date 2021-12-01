@@ -159,7 +159,7 @@ class Fusion(object):
             # seg_result = self.segmetation(xyz, frustrum_for_onescene)
             res=self.is_box_in_frustrum(frustrum_for_onescene,box3d_to_2d,xyz)
             
-            img3d["frustrum"] = frustrum_for_onescene
+            img3d["frustrum"] = res
             img3d["frame_id"] = sequence
             img3d["filename"] = annos2d[i]["image_id"]
             # img3d["seg"]=seg_result
@@ -318,7 +318,7 @@ class Fusion(object):
             if found is False:
                 if frustrum["centroid"] is not None:
                     frustrum_per_onescene[i]["is_generated"]=True
-                    gen_box=self.make_3d_box(xyz[frustrum["large_frustrum"]],frustrum["centroid"],frustrum["large_frustrum"],frustrum["centroid_idx"])
+                    frustrum_per_onescene[i]["seg"]=self.make_3d_box(xyz[frustrum["large_frustrum"]],frustrum["centroid"],frustrum["large_frustrum"],frustrum["centroid_idx"])
                 else:
                     frustrum_per_onescene[i]["is_generated"]=False
                     frustrum_per_onescene[i]["3d_box"]=None
@@ -339,8 +339,7 @@ class Fusion(object):
 
         """
         seg_cluster,seg_idx=self.segmentation(frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.1)
-        seg_cluster
-        return NotImplementedError
+        return seg_idx
 
     def segmentation(self,frustrum_point,centroid_point,frustrum_idx,centroid_idx,max_radius=0.1):
         points = Queue()
@@ -364,9 +363,9 @@ class Fusion(object):
         return cluster, idx
 
     def find_centroid(self, frustrum, frustrum_idx):
-        #function: Find Frustrum Centroid
-        #input: frustrum(x,y,z),frustrum_idx (n)-> points idx in this frame
-        #output: centorid(x,y,z),centroid_idx(n)-> points idx in this frame ,frustrum inner index
+        # function: Find Frustrum Centroid
+        # input: frustrum(x,y,z),frustrum_idx (n)-> points idx in this frame
+        # output: centorid(x,y,z),centroid_idx(n)-> points idx in this frame ,frustrum inner index
         min_radius = (frustrum[:, 0]**2+frustrum[:, 1]** 2+frustrum[:, 2]**2)**0.5
         min_radius = min_radius[np.argmin(min_radius)]
         mean_radius = (frustrum[:, 0].mean()**2+frustrum[:,1].mean()**2+frustrum[:, 2].mean()**2)**0.5
@@ -384,6 +383,7 @@ class Fusion(object):
             annos2d = pickle.load(f)
         self.current_intrinsics = annos2d[0]["intrinsic"]
         self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
+        
     def doitwell(self,planes):
         frustrums=[]
         for plane in planes:
@@ -393,6 +393,7 @@ class Fusion(object):
                 frustrum = np.delete(frustrum, idx)
             frustrums.append(frustrum)
         return frustrums
+    
     # def segmetation(self, all_point, frustrums):
     #     seg_res=[]
     #     que=mp.Queue()
