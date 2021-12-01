@@ -19,7 +19,6 @@ from easydict import EasyDict
 
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 
-
 def cocol2waymo(label):
     if label == 1:
         return WAYMO_CLASSES[2]

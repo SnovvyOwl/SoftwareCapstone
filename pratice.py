@@ -192,36 +192,39 @@ if __name__ == "__main__":
     r=fu.make_frustum(annos2d[0]["anno"],xyz,plane)
     # frustum,id=image2point(xyz,res)
     segs=[]
+    frustums=[]
     print(annos3d[1]["frame_id"])
+    # for f in frustum[1]["frustum"]:
+    #     if f["is_generated"] is True:
+    #         segs.append(f["seg"])
     for f in frustum[1]["frustum"]:
-        if f["is_generated"] is True:
-            segs.append(f["seg"])
-    # for f in frustum[0]["frustum"]:
-    #     if f["centroid_idx"] is not None:
-    #         frustums.append(f)
+        if f["centroid_idx"] is not None:
+            frustums.append(f)
     pcds=[]
     vecs=[]
-    for seg in segs:
-        pcd=o3d.geometry.PointCloud()
-        pcd.points=o3d.utility.Vector3dVector(xyz[seg])
-        pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])   
-        pcds.append(pcd)
-        vecs=vecs+list(seg)
-    # for f in frustums:
-    #     if f["label"]=='Pedestrian':
-    #         pcd = o3d.geometry.PointCloud()
-    #         pcd.points = o3d.utility.Vector3dVector(xyz[f["frustum"]])
-    #         pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])    
-    #     elif f["label"]=='Vehicle':
-    #         pcd= o3d.geometry.PointCloud()
-    #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustum"]])
-    #         pcd.paint_uniform_color([np.random.rand() ,0, np.random.rand() ])
-    #     elif f["label"]=='Cyclist':
-    #         pcd= o3d.geometry.PointCloud()
-    #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustum"]])
-    #         pcd.paint_uniform_color([0, np.random.rand() , np.random.rand() ])
+    # for seg in segs:
+    #     pcd=o3d.geometry.PointCloud()
+    #     pcd.points=o3d.utility.Vector3dVector(xyz[seg])
+    #     pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])   
     #     pcds.append(pcd)
-    #     vecs=vecs+list(f["frustum"])
+    #     vecs=vecs+list(seg)
+    for f in frustums:
+        if f["label"]=='Pedestrian':
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(xyz[f["frustum"]])
+            pcd.paint_uniform_color([1, 0 , 0])
+            pcds.append(pcd)
+            vecs=vecs+list(f["frustum"])
+        elif f["label"]=='Vehicle':
+            pcd= o3d.geometry.PointCloud()
+            pcd.points=o3d.utility.Vector3dVector(xyz[f["frustum"]])
+            pcd.paint_uniform_color([0,1, 0])
+        elif f["label"]=='Cyclist':
+            pcd= o3d.geometry.PointCloud()
+            pcd.points=o3d.utility.Vector3dVector(xyz[f["frustum"]])
+            pcd.paint_uniform_color([0, np.random.rand() , np.random.rand() ])
+        # pcds.append(pcd)
+        # vecs=vecs+list(f["frustum"])
     
     box=make_3dBox(annos3d[1])
     # cameranum=0
