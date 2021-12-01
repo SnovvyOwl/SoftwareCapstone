@@ -45,44 +45,44 @@ def projection(intrinsic,extrinsic,lidar,weight,height):
     # np.savetxt("pase",np.array(idx),fmt='%6.6e')
     return in_box_point,idx
 
-# def segmentation(frustrum,idx):
+# def segmentation(frustum,idx):
 #     cluster=[]
-#     # centroid_vector=[(frustrum[:,0].max()+frustrum[:,0].min())/2,(frustrum[:,1].max()+frustrum[:,1].min())/2,(frustrum[:,2].max()+frustrum[:,2].min())/2]
-#     radius=(frustrum[:,0]**2+frustrum[:,1]**2+frustrum[:,2]**2)**0.5
+#     # centroid_vector=[(frustum[:,0].max()+frustum[:,0].min())/2,(frustum[:,1].max()+frustum[:,1].min())/2,(frustum[:,2].max()+frustum[:,2].min())/2]
+#     radius=(frustum[:,0]**2+frustum[:,1]**2+frustum[:,2]**2)**0.5
 #     radius=radius[np.argmin(radius)]
-#     mean_radius=(frustrum[:,0].mean()**2+frustrum[:,1].mean()**2+frustrum[:,2].mean()**2)**0.5
-#     centroid_vector=[frustrum[:,0].mean()/mean_radius*radius,frustrum[:,1].mean()/mean_radius*radius,(frustrum[:,2]).mean()/mean_radius*radius]
+#     mean_radius=(frustum[:,0].mean()**2+frustum[:,1].mean()**2+frustum[:,2].mean()**2)**0.5
+#     centroid_vector=[frustum[:,0].mean()/mean_radius*radius,frustum[:,1].mean()/mean_radius*radius,(frustum[:,2]).mean()/mean_radius*radius]
 #     vec=o3d.geometry.LineSet()
 #     vecpoint=[[0,0,0],centroid_vector]
 #     line=[[0,1]]
 #     vec.lines= o3d.utility.Vector2iVector(line)
 #     vec.points= o3d.utility.Vector3dVector(vecpoint)
-#     centroid,centorid_idx,fi=find_centroid(centroid_vector,frustrum,idx)
-#     cluster=make_cluster(centroid,fi,frustrum,idx,0.01)   
+#     centroid,centorid_idx,fi=find_centroid(centroid_vector,frustum,idx)
+#     cluster=make_cluster(centroid,fi,frustum,idx,0.01)   
 #     return cluster,vec
 
-# def make_cluster(centroid,centroid_idx,frustrum,idx,max_radius=0.1):
+# def make_cluster(centroid,centroid_idx,frustum,idx,max_radius=0.1):
 #     cluster=[]
 #     points=Queue()
 #     idices=Queue()
 #     points.put(centroid)
 #     idices.put(idx[centroid_idx])
 #     cluster.append(idx[centroid_idx])
-#     cp_frustrum=frustrum.copy()
+#     cp_frustum=frustum.copy()
 #     cp_idx=idx.copy()
-#     cp_frustrum=np.delete(cp_frustrum,centroid_idx,0)
+#     cp_frustum=np.delete(cp_frustum,centroid_idx,0)
 #     cp_idx=np.delete(cp_idx,centroid_idx)
 #     while points.empty()!=True:
 #         leaf=points.get()
-#         radius=np.array((cp_frustrum[:,0]-leaf[0])**2+(cp_frustrum[:,1]-leaf[1])**2+(cp_frustrum[:,2]-leaf[2])**2)
+#         radius=np.array((cp_frustum[:,0]-leaf[0])**2+(cp_frustum[:,1]-leaf[1])**2+(cp_frustum[:,2]-leaf[2])**2)
 #         i=np.where(radius<max_radius)
 #         cluster.extend(cp_idx[i[0][:]])
 #         next_cp_idx=np.delete(cp_idx,i[0])
-#         next_cp_frustrum=np.delete(cp_frustrum,i[0],0)
+#         next_cp_frustum=np.delete(cp_frustum,i[0],0)
 #         for i in list(idx[0][:]):
-#             points.put(cp_frustrum[i])
+#             points.put(cp_frustum[i])
 #         cp_idx=next_cp_idx
-#         cp_frustrum=next_cp_frustrum
+#         cp_frustum=next_cp_frustum
 #     return cluster
 
 def make_3dBox(anno):
@@ -155,10 +155,10 @@ def boxes_to_corners_3d(boxes3d):
 
     return corners3d.numpy() if is_numpy else corners3d
 
-def find_centroid(center_vector,frustrum,idx):
+def find_centroid(center_vector,frustum,idx):
     centroid=None
-    radius=(frustrum[:,1]-center_vector[1])**2+(frustrum[:,2]-center_vector[2])**2
-    centroid=frustrum[np.argmin(radius)]
+    radius=(frustum[:,1]-center_vector[1])**2+(frustum[:,2]-center_vector[2])**2
+    centroid=frustum[np.argmin(radius)]
     centroid_idx=idx[np.argmin(radius)]
     return centroid,centroid_idx ,np.argmin(radius)
 
@@ -182,38 +182,48 @@ if __name__ == "__main__":
         annos3d=pickle.load(f)
     with open("anno2d.pkl",'rb')as f:
         annos2d=pickle.load(f)
-    with open("frustrum.pkl",'rb')as f:
-        frustrum=pickle.load(f)
-    xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/0000.npy")
+    with open("frustum.pkl",'rb')as f:
+        frustum=pickle.load(f)
+    xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/0005.npy")
     xyz=xyz[:,:3]
     fu.set_matrix()
     fu.box_is_in_plane(annos3d[0])
     plane=fu.pointcloud2image(xyz)
-    r=fu.make_frustrum(annos2d[0]["anno"],xyz,plane)
-    # frustrum,id=image2point(xyz,res)
-    frustrums=[]
-    for f in frustrum[0]["frustrum"]:
-        if f["centroid_idx"] is not None:
-            frustrums.append(f)
+    r=fu.make_frustum(annos2d[0]["anno"],xyz,plane)
+    # frustum,id=image2point(xyz,res)
+    segs=[]
+    print(annos3d[1]["frame_id"])
+    for f in frustum[1]["frustum"]:
+        if f["is_generated"] is True:
+            segs.append(f["seg"])
+    # for f in frustum[0]["frustum"]:
+    #     if f["centroid_idx"] is not None:
+    #         frustums.append(f)
     pcds=[]
     vecs=[]
-    for f in frustrums:
-        if f["label"]=='Pedestrian':
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])    
-        elif f["label"]=='Vehicle':
-            pcd= o3d.geometry.PointCloud()
-            pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-            pcd.paint_uniform_color([np.random.rand() ,0, np.random.rand() ])
-        elif f["label"]=='Cyclist':
-            pcd= o3d.geometry.PointCloud()
-            pcd.points=o3d.utility.Vector3dVector(xyz[f["frustrum"]])
-            pcd.paint_uniform_color([0, np.random.rand() , np.random.rand() ])
+    for seg in segs:
+        pcd=o3d.geometry.PointCloud()
+        pcd.points=o3d.utility.Vector3dVector(xyz[seg])
+        pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])   
         pcds.append(pcd)
-        vecs=vecs+list(f["frustrum"])
+        vecs=vecs+list(seg)
+    # for f in frustums:
+    #     if f["label"]=='Pedestrian':
+    #         pcd = o3d.geometry.PointCloud()
+    #         pcd.points = o3d.utility.Vector3dVector(xyz[f["frustum"]])
+    #         pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])    
+    #     elif f["label"]=='Vehicle':
+    #         pcd= o3d.geometry.PointCloud()
+    #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustum"]])
+    #         pcd.paint_uniform_color([np.random.rand() ,0, np.random.rand() ])
+    #     elif f["label"]=='Cyclist':
+    #         pcd= o3d.geometry.PointCloud()
+    #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustum"]])
+    #         pcd.paint_uniform_color([0, np.random.rand() , np.random.rand() ])
+    #     pcds.append(pcd)
+    #     vecs=vecs+list(f["frustum"])
     
-    box=make_3dBox(annos3d[0])
+    box=make_3dBox(annos3d[1])
     # cameranum=0
     # if cameranum in [0,1,2]:
     #     point, idx=projection(annos2d[0]["intrinsic"][cameranum],annos2d[0]["extrinsic"][cameranum],xyz,1920,1280)
