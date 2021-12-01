@@ -139,7 +139,6 @@ class Fusion(object):
         for i in range(CAMMERA_NUM):
             intrinsic = np.array(
                 [[param[i][0], 0, param[i][2], 0], [0, param[i][1], param[i][3], 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-            # intrinsic=np.asmatrix(intrinsic)
             dist = np.array(param[i][4:])
             intrinsics.append(intrinsic)
             distCoffs.append(dist)
@@ -246,41 +245,42 @@ class Fusion(object):
             for i, label in enumerate(annos[camera_num]["labels"]):
                 idx = None
                 if label != "unknown":
-                    projected_point = {}
-                    projected_point["label"] = label
-                    #box = [annos[camera_num]["boxes"][i][0], annos[camera_num]["boxes"][i][2], annos[camera_num]["boxes"][i][1], annos[camera_num]["boxes"][i][3]]
-                    box=annos[camera_num]["boxes"][i]
-                    box = np.floor(box).astype(np.int)
-                    # print(point_planes[camera_num][int((box[0]+box[1])/2)][(int(box[0]+box[1])/2)])
-                    frustum = np.unique(point_planes[camera_num][box[0]:box[2], box[1]:box[3]].flatten("C"))
-                    idx = np.where(frustum == -1)
-                    if idx is not None:
-                        frustum = np.delete(frustum, idx)
-                    x_extend=((box[2]-box[0])*1.1)/2
-                    x_center=(box[2]+box[0])/2
-                    y_extend=((box[3]-box[1])*1.1)/2
-                    y_center=(box[3]+box[1])/2
-                    large_box=[x_center-x_extend,y_center-y_extend,x_center+x_extend,y_center+y_extend]
-                    large_box = np.floor(large_box).astype(np.int)
-                    large_frustum = np.unique(point_planes[camera_num][large_box[0]:large_box[2], large_box[1]:large_box[3]].flatten("C"))
-                    idx = np.where(large_frustum  == -1)
-                    if idx is not None:
-                        large_frustum = np.delete(large_frustum , idx)
-                    projected_point["large_frustum"]=large_frustum
-                    projected_point["frustum"] = frustum
-                    projected_point["2d_box"]=box
-                    if frustum.size != 0:
-                        # self.find_centroid2(point_planes[camera_num],box)
-                        centroid, centorid_idx, frustum_idx = self.find_centroid(xyz[frustum], frustum)
-                        projected_point["centroid"] = centroid
-                        projected_point["centroid_idx"] = centorid_idx
-                        projected_point["frustum_idx"]=frustum_idx
-                    else:
-                        projected_point["centroid"] = None
-                        projected_point["centroid_idx"] = None
-                        projected_point["frustum_idx"]=None    
+                    if annos[camera_num]['scores'][i]>0.3:
+                        projected_point = {}
+                        projected_point["label"] = label
+                        #box = [annos[camera_num]["boxes"][i][0], annos[camera_num]["boxes"][i][2], annos[camera_num]["boxes"][i][1], annos[camera_num]["boxes"][i][3]]
+                        box=annos[camera_num]["boxes"][i]
+                        box = np.floor(box).astype(np.int)
+                        # print(point_planes[camera_num][int((box[0]+box[1])/2)][(int(box[0]+box[1])/2)])
+                        frustum = np.unique(point_planes[camera_num][box[0]:box[2], box[1]:box[3]].flatten("C"))
+                        idx = np.where(frustum == -1)
+                        if idx is not None:
+                            frustum = np.delete(frustum, idx)
+                        x_extend=((box[2]-box[0])*1.1)/2
+                        x_center=(box[2]+box[0])/2
+                        y_extend=((box[3]-box[1])*1.1)/2
+                        y_center=(box[3]+box[1])/2
+                        large_box=[x_center-x_extend,y_center-y_extend,x_center+x_extend,y_center+y_extend]
+                        large_box = np.floor(large_box).astype(np.int)
+                        large_frustum = np.unique(point_planes[camera_num][large_box[0]:large_box[2], large_box[1]:large_box[3]].flatten("C"))
+                        idx = np.where(large_frustum  == -1)
+                        if idx is not None:
+                            large_frustum = np.delete(large_frustum , idx)
+                        projected_point["large_frustum"]=large_frustum
+                        projected_point["frustum"] = frustum
+                        projected_point["2d_box"]=box
+                        if frustum.size != 0:
+                            # self.find_centroid2(point_planes[camera_num],box)
+                            centroid, centorid_idx, frustum_idx = self.find_centroid(xyz[frustum], frustum)
+                            projected_point["centroid"] = centroid
+                            projected_point["centroid_idx"] = centorid_idx
+                            projected_point["frustum_idx"]=frustum_idx
+                        else:
+                            projected_point["centroid"] = None
+                            projected_point["centroid_idx"] = None
+                            projected_point["frustum_idx"]=None    
                         
-                    frustums.append(projected_point)
+                        frustums.append(projected_point)
         return frustums
  
    
@@ -330,7 +330,7 @@ class Fusion(object):
                 for  box in box_in_camera_num:
                     iou=iou2d(box["box"],frustum["2d_box"])
                     
-                    if iou>0.2:
+                    if iou>0.7:
                         if frustum["label"]==box["label"]:
                             # print(iou)
                             frustum_per_onescene[i]["3d_box"]=box["3d_box"]
@@ -360,10 +360,10 @@ class Fusion(object):
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
 
         """
-        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.07)
+        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.05)
         return seg_idx
 
-    def segmentation(self,frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.0):
+    def segmentation(self,frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.05):
         points = Queue()
         cp_frustum_point=frustum_point.copy()
         cp_frustum_idx=frustum_idx.copy()
