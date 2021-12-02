@@ -256,6 +256,7 @@ class Fusion(object):
                         idx = np.where(frustum == -1)
                         if idx is not None:
                             frustum = np.delete(frustum, idx)
+                        # make 10% Large Frustum
                         x_extend=((box[2]-box[0])*1.1)/2
                         x_center=(box[2]+box[0])/2
                         y_extend=((box[3]-box[1])*1.1)/2
@@ -266,19 +267,31 @@ class Fusion(object):
                         idx = np.where(large_frustum  == -1)
                         if idx is not None:
                             large_frustum = np.delete(large_frustum , idx)
+                       
                         projected_point["large_frustum"]=large_frustum
                         projected_point["frustum"] = frustum
                         projected_point["2d_box"]=box
                         if frustum.size != 0:
-                            # self.find_centroid2(point_planes[camera_num],box)
-                            centroid, centorid_idx, frustum_idx = self.find_centroid(xyz[frustum], frustum)
-                            projected_point["centroid"] = centroid
-                            projected_point["centroid_idx"] = centorid_idx
-                            projected_point["frustum_idx"]=frustum_idx
+                             # make center box
+                            x_center_extend=((box[2]-box[0])*0.1)/2
+                            y_center_extend=((box[3]-box[1])*0.1)/2
+                            center_box=[x_center-x_center_extend,y_center-y_center_extend,x_center+x_center_extend,y_center+y_center_extend]
+                            center_box=np.floor(center_box).astype(np.int)
+                            center_frustum = np.unique(point_planes[camera_num][center_box[0]:center_box[2], center_box[1]:center_box[3]].flatten("C"))
+                            idx = np.where(center_frustum  == -1)
+                            if idx is not None:
+                                center_frustum = np.delete(center_frustum , idx)
+                         
+                            # centroid, centorid_idx, frustum_idx = self.find_centroid(xyz[frustum], frustum)
+                            projected_point["centroid"] = xyz[center_frustum]
+                            projected_point["centroid_idx"] = center_frustum
+                            # projected_point["centroid"] = centroid
+                            # projected_point["centroid_idx"] = centorid_idx
+                            # projected_point["frustum_idx"]=frustum_idx
                         else:
                             projected_point["centroid"] = None
                             projected_point["centroid_idx"] = None
-                            projected_point["frustum_idx"]=None    
+                            # projected_point["frustum_idx"]=None    
                         
                         frustums.append(projected_point)
         return frustums
@@ -367,8 +380,10 @@ class Fusion(object):
         points = Queue()
         cp_frustum_point=frustum_point.copy()
         cp_frustum_idx=frustum_idx.copy()
-        points.put(centroid_point)
         cluster=[]
+        for center_point in centroid_point:
+            points.put(center_point)
+            cluster.append(center_point)
         idx=[]
         while points.empty() != True:
             leaf = points.get()
