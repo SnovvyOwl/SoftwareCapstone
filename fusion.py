@@ -273,8 +273,8 @@ class Fusion(object):
                         projected_point["2d_box"]=box
                         if frustum.size != 0:
                              # make center box
-                            x_center_extend=((box[2]-box[0])*0.1)/2
-                            y_center_extend=((box[3]-box[1])*0.1)/2
+                            x_center_extend=((box[2]-box[0])*0.05)/2
+                            y_center_extend=((box[3]-box[1])*0.05)/2
                             center_box=[x_center-x_center_extend,y_center-y_center_extend,x_center+x_center_extend,y_center+y_center_extend]
                             center_box=np.floor(center_box).astype(np.int)
                             center_frustum = np.unique(point_planes[camera_num][center_box[0]:center_box[2], center_box[1]:center_box[3]].flatten("C"))
@@ -343,7 +343,7 @@ class Fusion(object):
                 for  box in box_in_camera_num:
                     iou=iou2d(box["box"],frustum["2d_box"])
                     
-                    if iou>0.7:
+                    if iou>0.5:
                         if frustum["label"]==box["label"]:
                             # print(iou)
                             frustum_per_onescene[i]["3d_box"]=box["3d_box"]
@@ -373,10 +373,10 @@ class Fusion(object):
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
 
         """
-        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.05)
+        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.03)
         return seg_idx
 
-    def segmentation(self,frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.05):
+    def segmentation(self,frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.03):
         points = Queue()
         cp_frustum_point=frustum_point.copy()
         cp_frustum_idx=frustum_idx.copy()

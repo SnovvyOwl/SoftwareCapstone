@@ -195,43 +195,43 @@ if __name__ == "__main__":
     segs=[]
     frustums=[]
     print(annos3d[frame_idx]["frame_id"])
-    # for f in frustum[1]["frustum"]:
-    #     if f["is_generated"] is True:
-    #         segs.append(f)
-    for f in frustum[frame_idx]["frustum"]:
-        if f["centroid_idx"] is not None:
-            frustums.append(f)
+    for f in frustum[1]["frustum"]:
+        if f["is_generated"] is True:
+            segs.append(f)
+    # for f in frustum[frame_idx]["frustum"]:
+    #     if f["centroid_idx"] is not None:
+    #         frustums.append(f)
     pcds=[]
     vecs=[]
-    # for seg in segs:
-    #     if seg["label"]=='Pedestrian':
-    #         pcd=o3d.geometry.PointCloud()
-    #         pcd.points=o3d.utility.Vector3dVector(xyz[seg["seg"]])
-    #         pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])   
-    #         pcds.append(pcd)
-    #         vecs=vecs+list(seg["seg"])
-    i=0
-    for idx,f in enumerate(frustums):
-        if f["label"]=='Pedestrian':
-            pcds.clear() 
-            vecs.clear()
-            i+=1
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(xyz[f["frustum"]])
-            pcd.paint_uniform_color([1, 0 , 0])
+    for seg in segs:
+        if seg["label"]=='Pedestrian':
+            pcd=o3d.geometry.PointCloud()
+            pcd.points=o3d.utility.Vector3dVector(xyz[seg["seg"]])
+            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])   
             pcds.append(pcd)
-            vecs=vecs+list(f["frustum"])
+            vecs=vecs+list(seg["seg"])
+    # i=0
+    # for idx,f in enumerate(frustums):
+    #     if f["label"]=='Pedestrian':
+    #         pcds.clear() 
+    #         vecs.clear()
+    #         i+=1
+    #         pcd = o3d.geometry.PointCloud()
+    #         pcd.points = o3d.utility.Vector3dVector(xyz[f["frustum"]])
+    #         pcd.paint_uniform_color([1, 0 , 0])
+    #         pcds.append(pcd)
+    #         vecs=vecs+list(f["frustum"])
             
-            if i==7:
-                print(idx)
-                break
-    res,idx=fu.segmentation(xyz[frustums[12]["large_frustum"]],frustums[12]["centroid"],frustums[12]["large_frustum"],frustums[12]["centroid_idx"])
-    pcd=o3d.geometry.PointCloud()
-    print(res)
-    pcd.points=o3d.utility.Vector3dVector(list(res))
-    vecs=vecs+idx
-    pcd.paint_uniform_color([0, 1, 0])
-    pcds.append(pcd)
+    #         if i==7:
+    #             print(idx)
+    #             break
+    # res,idx=fu.segmentation(xyz[frustums[12]["large_frustum"]],frustums[12]["centroid"],frustums[12]["large_frustum"],frustums[12]["centroid_idx"],max_radius=0.01)
+    # pcd=o3d.geometry.PointCloud()
+    # print(res)
+    # pcd.points=o3d.utility.Vector3dVector(list(res))
+    # vecs=vecs+idx
+    # pcd.paint_uniform_color([0, 1, 0])
+    # pcds.append(pcd)
     #     elif f["label"]=='Vehicle':
     #         pcd= o3d.geometry.PointCloud()
     #         pcd.points=o3d.utility.Vector3dVector(xyz[f["frustum"]])
