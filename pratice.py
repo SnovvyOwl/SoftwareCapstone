@@ -198,9 +198,6 @@ if __name__ == "__main__":
     for f in frustum[1]["frustum"]:
         if f["is_generated"] is True:
             segs.append(f)
-    # for f in frustum[frame_idx]["frustum"]:
-    #     if f["centroid_idx"] is not None:
-    #         frustums.append(f)
     pcds=[]
     vecs=[]
     for seg in segs:
@@ -208,6 +205,24 @@ if __name__ == "__main__":
             pcd=o3d.geometry.PointCloud()
             pcd.points=o3d.utility.Vector3dVector(xyz[seg["seg"]])
             pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])   
+            pcds.append(pcd)
+            vecs=vecs+list(seg["seg"])
+        if seg["label"]=='Vehicle':
+            pcd=o3d.geometry.PointCloud()
+            pcd.points=o3d.utility.Vector3dVector(xyz[seg["seg"]])
+            pcd.paint_uniform_color([0 , np.random.rand() , 0])   
+            pcds.append(pcd)
+            vecs=vecs+list(seg["seg"])
+        if seg["label"]=='Cyclist':
+            pcd=o3d.geometry.PointCloud()
+            pcd.points=o3d.utility.Vector3dVector(xyz[seg["seg"]])
+            pcd.paint_uniform_color([np.random.rand() , 0 , 0])   
+            pcds.append(pcd)
+            vecs=vecs+list(seg["seg"])
+        if seg["label"]=='Sign':
+            pcd=o3d.geometry.PointCloud()
+            pcd.points=o3d.utility.Vector3dVector(xyz[seg["seg"]])
+            pcd.paint_uniform_color([np.random.rand() , 0 , np.random.rand() ])   
             pcds.append(pcd)
             vecs=vecs+list(seg["seg"])
     # i=0

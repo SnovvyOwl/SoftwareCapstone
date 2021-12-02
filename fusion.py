@@ -245,7 +245,7 @@ class Fusion(object):
             for i, label in enumerate(annos[camera_num]["labels"]):
                 idx = None
                 if label != "unknown":
-                    if annos[camera_num]['scores'][i]>0.3:
+                    if annos[camera_num]['scores'][i]>0.5:
                         projected_point = {}
                         projected_point["label"] = label
                         #box = [annos[camera_num]["boxes"][i][0], annos[camera_num]["boxes"][i][2], annos[camera_num]["boxes"][i][1], annos[camera_num]["boxes"][i][3]]
@@ -343,7 +343,7 @@ class Fusion(object):
                 for  box in box_in_camera_num:
                     if frustum["label"]==box["label"]:
                         iou=iou2d(box["box"],frustum["2d_box"])
-                        if iou>0.5:
+                        if iou>0.4:
                         
                             # print(iou)
                             frustum_per_onescene[i]["3d_box"]=box["3d_box"]
@@ -353,7 +353,7 @@ class Fusion(object):
             if found is False:
                 if frustum["centroid"] is not None:
                     frustum_per_onescene[i]["is_generated"]=True
-                    frustum_per_onescene[i]["seg"]=self.make_3d_box(xyz[frustum["large_frustum"]],frustum["centroid"],frustum["large_frustum"],frustum["centroid_idx"])
+                    frustum_per_onescene[i]["seg"]=self.make_3d_box(cp_xyz[frustum["large_frustum"]],frustum["centroid"],frustum["large_frustum"],frustum["centroid_idx"])
                 else:
                     frustum_per_onescene[i]["is_generated"]=False
                     frustum_per_onescene[i]["seg"]=None
@@ -399,19 +399,19 @@ class Fusion(object):
             cp_frustum_point = next_cp_frustum_point
         return cluster, idx
 
-    def find_centroid(self, frustum, frustum_idx):
-        # function: Find frustum Centroid
-        # input: frustum(x,y,z),frustum_idx (n)-> points idx in this frame
-        # output: centorid(x,y,z),centroid_idx(n)-> points idx in this frame ,frustum inner index
-        min_radius = (frustum[:, 0]**2+frustum[:, 1]** 2+frustum[:, 2]**2)**0.5
-        min_radius = min_radius[np.argmin(min_radius)]
-        mean_radius = (frustum[:, 0].mean()**2+frustum[:,1].mean()**2+frustum[:, 2].mean()**2)**0.5
-        centroid_vector = [frustum[:, 0].mean()/mean_radius*min_radius, frustum[:, 1].mean()/mean_radius*min_radius, (frustum[:, 2]).mean()/mean_radius*min_radius]
-        centroid = None
-        radius = (frustum[:, 1]-centroid_vector[1])**2 + (frustum[:, 2]-centroid_vector[2])**2
-        centroid = frustum[np.argmin(radius)]
-        centroid_idx = frustum_idx[np.argmin(radius)]
-        return centroid, centroid_idx, np.argmin(radius)
+    # def find_centroid(self, frustum, frustum_idx):
+    #     # function: Find frustum Centroid
+    #     # input: frustum(x,y,z),frustum_idx (n)-> points idx in this frame
+    #     # output: centorid(x,y,z),centroid_idx(n)-> points idx in this frame ,frustum inner index
+    #     min_radius = (frustum[:, 0]**2+frustum[:, 1]** 2+frustum[:, 2]**2)**0.5
+    #     min_radius = min_radius[np.argmin(min_radius)]
+    #     mean_radius = (frustum[:, 0].mean()**2+frustum[:,1].mean()**2+frustum[:, 2].mean()**2)**0.5
+    #     centroid_vector = [frustum[:, 0].mean()/mean_radius*min_radius, frustum[:, 1].mean()/mean_radius*min_radius, (frustum[:, 2]).mean()/mean_radius*min_radius]
+    #     centroid = None
+    #     radius = (frustum[:, 1]-centroid_vector[1])**2 + (frustum[:, 2]-centroid_vector[2])**2
+    #     centroid = frustum[np.argmin(radius)]
+    #     centroid_idx = frustum_idx[np.argmin(radius)]
+    #     return centroid, centroid_idx, np.argmin(radius)
     
     
     #Test Code
