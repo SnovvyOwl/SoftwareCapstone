@@ -273,8 +273,8 @@ class Fusion(object):
                         projected_point["2d_box"]=box
                         if frustum.size != 0:
                              # make center box
-                            x_center_extend=((box[2]-box[0])*0.05)/2
-                            y_center_extend=((box[3]-box[1])*0.05)/2
+                            x_center_extend=((box[2]-box[0])*0.1)/2
+                            y_center_extend=((box[3]-box[1])*0.1)/2
                             center_box=[x_center-x_center_extend,y_center-y_center_extend,x_center+x_center_extend,y_center+y_center_extend]
                             center_box=np.floor(center_box).astype(np.int)
                             center_frustum = np.unique(point_planes[camera_num][center_box[0]:center_box[2], center_box[1]:center_box[3]].flatten("C"))
