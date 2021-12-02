@@ -341,10 +341,10 @@ class Fusion(object):
             found=False
             for box_in_camera_num in boxes:
                 for  box in box_in_camera_num:
-                    iou=iou2d(box["box"],frustum["2d_box"])
-                    
-                    if iou>0.5:
-                        if frustum["label"]==box["label"]:
+                    if frustum["label"]==box["label"]:
+                        iou=iou2d(box["box"],frustum["2d_box"])
+                        if iou>0.5:
+                        
                             # print(iou)
                             frustum_per_onescene[i]["3d_box"]=box["3d_box"]
                             frustum_per_onescene[i]["is_generated"]=False
