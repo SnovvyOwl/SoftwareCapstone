@@ -12,6 +12,7 @@ import multiprocessing as mp
 from tqdm import tqdm
 import PVRCNN.utils.common_utils
 import PVRCNN.ops.roiaware_pool3d.roiaware_pool3d_utils
+import math
 CAMMERA_NUM = 5
 
 def remove_points_in_boxes3d(points, boxes3d):
@@ -283,11 +284,13 @@ class Fusion(object):
                                 center_frustum = np.delete(center_frustum , idx)
                          
                             # centroid, centorid_idx, frustum_idx = self.find_centroid(xyz[frustum], frustum)
-                            projected_point["centroid"] = xyz[center_frustum]
-                            projected_point["centroid_idx"] = center_frustum
-                            # projected_point["centroid"] = centroid
-                            # projected_point["centroid_idx"] = centorid_idx
-                            # projected_point["frustum_idx"]=frustum_idx
+                            if len(xyz[center_frustum])!=0:
+                                projected_point["centroid"] = xyz[center_frustum]
+                                projected_point["centroid_idx"] = center_frustum
+                            else:
+                                projected_point["centroid"] = None
+                                projected_point["centroid_idx"] = None
+                            # projected_point["frustum_idx"]=None   
                         else:
                             projected_point["centroid"] = None
                             projected_point["centroid_idx"] = None
@@ -373,7 +376,21 @@ class Fusion(object):
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
 
         """
-        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.03)
+        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.03) 
+        center_x=np.mean(seg_cluster[:][:,0])
+        center_y=np.mean(seg_cluster[:][:,1])
+        center_z=np.mean(seg_cluster[:][:,2])
+  
+        M20=np.dot((seg_cluster[:][:,0]-center_x).T,(seg_cluster[:][:,0]-center_x))
+        M11=np.dot((seg_cluster[:,0]-center_x).T,(seg_cluster[:,1]-center_y))
+        M02=np.dot((seg_cluster[:,1]-center_y).T,(seg_cluster[:,1]-center_y))
+        M=np.array([[M20,M11],[M11,M02]])
+        w,v=np.linalg.eig(M)
+        if w[0]>w[1]:
+            axis=v[0]
+        else:
+            axis=v[1]
+        heading =math.atan2(axis[1],axis[0])
         return seg_idx
 
     def segmentation(self,frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.03):
@@ -398,23 +415,9 @@ class Fusion(object):
                 points.put(cp_frustum_point[i])
             cp_frustum_idx = next_cp_frustum_idx
             cp_frustum_point = next_cp_frustum_point
+        cluster=np.array(cluster)
         return cluster, idx
 
-    # def find_centroid(self, frustum, frustum_idx):
-    #     # function: Find frustum Centroid
-    #     # input: frustum(x,y,z),frustum_idx (n)-> points idx in this frame
-    #     # output: centorid(x,y,z),centroid_idx(n)-> points idx in this frame ,frustum inner index
-    #     min_radius = (frustum[:, 0]**2+frustum[:, 1]** 2+frustum[:, 2]**2)**0.5
-    #     min_radius = min_radius[np.argmin(min_radius)]
-    #     mean_radius = (frustum[:, 0].mean()**2+frustum[:,1].mean()**2+frustum[:, 2].mean()**2)**0.5
-    #     centroid_vector = [frustum[:, 0].mean()/mean_radius*min_radius, frustum[:, 1].mean()/mean_radius*min_radius, (frustum[:, 2]).mean()/mean_radius*min_radius]
-    #     centroid = None
-    #     radius = (frustum[:, 1]-centroid_vector[1])**2 + (frustum[:, 2]-centroid_vector[2])**2
-    #     centroid = frustum[np.argmin(radius)]
-    #     centroid_idx = frustum_idx[np.argmin(radius)]
-    #     return centroid, centroid_idx, np.argmin(radius)
-    
-    
     #Test Code
     def set_matrix(self):
         with open("anno2d.pkl", 'rb')as f:
@@ -431,65 +434,6 @@ class Fusion(object):
                 frustum = np.delete(frustum, idx)
             frustums.append(frustum)
         return frustums
-    
-    # def segmetation(self, all_point, frustums):
-    #     seg_res=[]
-    #     que=mp.Queue()
-    #     tmp=[]
-    #     for f in frustums:
-    #         if f["centroid_idx"] is not None:
-    #             tmp.append(f)
-    #     start_pos=0
-    #     div=mp.cpu_count()
-    #     end_pos=len(frustums)
-    #     for i in range(start_pos, end_pos + div, div):
-    #         current=tmp[start_pos:start_pos + div]
-    #         self.make_cluster(current[0],all_point,que,0.007)
-    #         res={}
-    #         if current!=[]:
-    #             procs=[]
-    #             for frustum in current:
-    #                 proc=mp.Process(target=self.make_cluster,args=(frustum,all_point,que,0.05))
-    #                 procs.append(proc)
-    #                 proc.start()
-    #             for proc in procs:
-    #                 seg_res.append(que.get())
-    #                 proc.join()
-    #             for proc in procs:
-    #                 proc.close()
-    #         start_pos = start_pos + div
-    #     return seg_res
-
-    # def make_cluster(self,frustum, all_point,que,max_radius=0.01):
-    #     res={}
-    #     res["label"]=frustum["label"]
-    #     res["centroid"]=frustum["centroid"]
-    #     res["centroid_idx"]=frustum["centroid_idx"]
-    #     cluster = []
-    #     centroid=frustum["centroid"]
-    #     centroid_idx=frustum["centroid_idx"]
-    #     points = Queue()
-    #     idices = Queue()
-    #     points.put(centroid)
-    #     idx=list(range(all_point.shape[0]))
-    #     idices.put(idx[centroid_idx])
-    #     cluster.append(idx[centroid_idx])
-    #     cp_all_point = all_point.copy()
-    #     cp_all_point = np.delete(cp_all_point, centroid_idx, 0)
-    #     idx = np.delete(idx, centroid_idx)
-    #     while points.empty() != True:
-    #         leaf = points.get()
-    #         radius = np.array((cp_all_point[:, 0]-leaf[0])**2+(cp_all_point[:, 1]-leaf[1])**2+(cp_all_point[:, 2]-leaf[2])**2)
-    #         cluster_idx = np.where(radius < max_radius)
-    #         cluster.extend(idx[cluster_idx[0][:]])
-    #         next_idx = np.delete(idx, cluster_idx[0])
-    #         next_cp_all_point = np.delete(cp_all_point, cluster_idx[0], 0)
-    #         for i in list(cluster_idx[0][:]):
-    #             points.put(cp_all_point[i])
-    #         idx = next_idx
-    #         cp_all_point = next_cp_all_point   
-    #     que.put(cluster)
-
 
 if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"
