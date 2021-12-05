@@ -377,6 +377,7 @@ class Fusion(object):
         return seg_idx
 
     def segmentation(self,frustum_point,centroid_point,frustum_idx,centroid_idx,max_radius=0.03):
+        #Return Frustum point[x,y,z] , Frustum IDX 
         points = Queue()
         cp_frustum_point=frustum_point.copy()
         cp_frustum_idx=frustum_idx.copy()
