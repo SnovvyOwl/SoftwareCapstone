@@ -127,11 +127,11 @@ class Fusion(object):
         return extrinscis
     
     def main(self):
-        annos3d, annos2d = self.val.val() # model 
-        # with open("anno3d.pkl", 'rb')as f:
-        #     annos3d = pickle.load(f)
-        # with open("anno2d.pkl", 'rb')as f:
-        #     annos2d = pickle.load(f)
+        # annos3d, annos2d = self.val.val() # model 
+        with open("anno3d.pkl", 'rb')as f:
+            annos3d = pickle.load(f)
+        with open("anno2d.pkl", 'rb')as f:
+            annos2d = pickle.load(f)
         sequence = annos2d[0]["frame_id"][0][0:-4]
         self.current_intrinsics = annos2d[0]["intrinsic"]
         self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
@@ -331,6 +331,7 @@ class Fusion(object):
                 maked_2dbox_with_label["3d_box"]=box
                 maked_2dbox_with_label["box"]=box2d
                 maked_2dbox_with_label["label"]=annos["name"][box_idx[i]]
+                maked_2dbox_with_label["PVRCNN_Formed_Box"]=annos["boxes_lidar"][box_idx[i]]
                 plane.append(maked_2dbox_with_label.copy())
         
             res.append(plane)
@@ -386,6 +387,7 @@ class Fusion(object):
                         if iou>0.4:
                         
                             # print(iou)
+                            frustum_per_onescene[i]["PVRCNN_Formed_Box"]=box["PVRCNN_Formed_Box"]
                             frustum_per_onescene[i]["3d_box"]=box["3d_box"]
                             frustum_per_onescene[i]["is_generated"]=False
                             found=True
@@ -393,7 +395,7 @@ class Fusion(object):
             if found is False:
                 if frustum["centroid"] is not None:
                     frustum_per_onescene[i]["is_generated"]=True
-                    frustum_per_onescene[i]["3d_box"],frustum_per_onescene[i]["seg"],frustum_per_onescene[i]["PV_RCNN_Form_box"]=self.make_3d_box(cp_xyz[frustum["large_frustum"]],frustum["centroid"],frustum["large_frustum"])
+                    frustum_per_onescene[i]["3d_box"],frustum_per_onescene[i]["seg"],frustum_per_onescene[i]["PVRCNN_Formed_Box"]=self.make_3d_box(cp_xyz[frustum["large_frustum"]],frustum["centroid"],frustum["large_frustum"])
                 else:
                     frustum_per_onescene[i]["is_generated"]=False
                     frustum_per_onescene[i]["3d_box"]=None
