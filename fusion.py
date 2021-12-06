@@ -148,6 +148,7 @@ class Fusion(object):
             box3d_to_2d=self.box_is_in_plane(annos3d[i])
             res=self.is_box_in_frustum(frustum_for_onescene,box3d_to_2d,xyz)
             img3d["frustum"] = res
+            img3d["segment_id"]=sequence
             img3d["frame_id"] = sequence+'/0'+annos2d[i]["frame_id"][0][-3:]
             img3d["filename"] = annos2d[i]["image_id"]
             result.append(img3d)
