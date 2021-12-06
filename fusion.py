@@ -32,9 +32,12 @@ def remove_points_in_boxes3d(points, boxes3d):
     return points.numpy() if is_numpy else points
 
 def iou2d(box1,box2):
-    # input  : box1[4], box2[4]
-    # output : IoU
-    # box = (x1, y1, x2, y2)
+    '''
+        DO : Calculate 2D IOU
+        INPUT : box1[4], box2[4]  box = (x1, y1, x2, y2)
+        OUTPUT : IoU   
+    '''
+  
     box1_area = (box1[2] - box1[0] ) * (box1[3] - box1[1])
     box2_area = (box2[2] - box2[0] ) * (box2[3] - box2[1])
 
@@ -51,19 +54,6 @@ def iou2d(box1,box2):
     inter = w * h
     iou = inter / (box1_area + box2_area - inter)
     return iou
-
-# def make_3dBox(anno):
-#     boxes = []
-#     lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5],
-#              [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
-#     corners3d = boxes_to_corners_3d(anno["boxes_lidar"])
-#     for box in corners3d:
-#         box3d = o3d.geometry.LineSet()
-#         box3d.points = o3d.utility.Vector3dVector(box)
-#         box3d.lines = o3d.utility.Vector2iVector(lines)
-#         boxes.append(box3d)
-#     return boxes
-
 
 def check_numpy_to_torch(x):
     if isinstance(x, np.ndarray):
@@ -156,7 +146,6 @@ class Fusion(object):
                 annos2d[i]["frame_id"][0][0:-4] = sequence
             xyz = np.load(self.root+sequence+'/0'+annos2d[i]["frame_id"][0][-3:]+".npy")[:, :3]
             point_planes = self.pointcloud2image(xyz)
-            # print("{0} ==> calibartion complete".format(sequence+'/0'+annos2d[i]["frame_id"][0][-3:]))
             frustum_for_onescene = self.make_frustum(annos2d[i]["anno"], xyz, point_planes)
             box3d_to_2d=self.box_is_in_plane(annos3d[i])
             res=self.is_box_in_frustum(frustum_for_onescene,box3d_to_2d,xyz)
@@ -406,7 +395,7 @@ class Fusion(object):
             if found is False:
                 if frustum["centroid"] is not None:
                     frustum_per_onescene[i]["is_generated"]=True
-                    frustum_per_onescene[i]["3d_box"],frustum_per_onescene[i]["seg"]=self.make_3d_box(cp_xyz[frustum["large_frustum"]],frustum["centroid"],frustum["large_frustum"])
+                    frustum_per_onescene[i]["3d_box"],frustum_per_onescene[i]["seg"],frustum_per_onescene[i]["PV_RCNN_Form_box"]=self.make_3d_box(cp_xyz[frustum["large_frustum"]],frustum["centroid"],frustum["large_frustum"])
                 else:
                     frustum_per_onescene[i]["is_generated"]=False
                     frustum_per_onescene[i]["3d_box"]=None
