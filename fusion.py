@@ -2,13 +2,11 @@ from operator import pos
 from re import I, T
 import numpy as np
 from numpy.core.numeric import False_
-import open3d as o3d
 from modelmanager import ModelManager
 import numpy as np
 import torch
 import pickle
 from queue import Queue
-import multiprocessing as mp
 from tqdm import tqdm
 import PVRCNN.utils.common_utils
 import PVRCNN.ops.roiaware_pool3d.roiaware_pool3d_utils
