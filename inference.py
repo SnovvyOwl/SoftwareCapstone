@@ -9,6 +9,7 @@ class Inference(object):
         self.root=root
         self.ckptdir=ckptdir
         self.current_segment=None
+        self.current_segment_frame=None
         # self.fusion=Fusion(root,ckptdir)
     
     def main(self):
@@ -18,9 +19,15 @@ class Inference(object):
         with open("anno3d.pkl", 'rb')as f:
             annos3d = pickle.load(f)
         for result in result_of_fusion:
-            print(result)
-    def load_ground_truth_data(self):
-        print("gt")
+            if self.current_segment!= result["segment_id"]:
+                self.current_segment=result["segment_id"]
+                self.load_ground_truth_data(self.root+'/'+self.current_segment)
+
+    def load_ground_truth_data(self,dirpath):
+        dirpath=dirpath+"/"+self.current_segment+".pkl"
+        with open(dirpath,"rb") as f:
+            data=pickle.load(f)
+        print(data)
 
 if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"
