@@ -84,6 +84,9 @@ class ModelManager(object):
         return args, cfg
 
     def build_PVRCNN_Model(self):
+        '''
+            DO: Build PVRCNN Model
+        '''
         self.logger = common_utils.create_logger(None, rank=cfg.LOCAL_RANK)
         if self.args.launcher == 'none':
             dist_test = False
@@ -116,6 +119,10 @@ class ModelManager(object):
             return model
 
     def val(self):
+        '''
+            DO: predictioin 3D and 2D
+            OUTPUT: 3D result, 2D result
+        '''
         transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
         final_output_dir = None
         save_to_file = False
@@ -172,6 +179,14 @@ class ModelManager(object):
         return det_annos, img_annos
 
     def pred_2Dbox(self, img):
+        '''
+            DO: Generate 2D Box Faster RCNN
+            INPUT: Image(Undisorted)
+            OUTPUT: pred = dict()
+                ['labels']= class  <Waymo>
+                ['boxes']= 2d Box For Image
+                ['score']= 2d Obeject Dectection Score
+        '''
         pred_class = []
         with torch.no_grad():
             pred = self.FASTERRCNN_model([img])
