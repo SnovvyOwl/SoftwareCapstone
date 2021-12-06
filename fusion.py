@@ -153,7 +153,7 @@ class Fusion(object):
             result.append(img3d)
         with open("frustum.pkl", 'wb') as f:
             pickle.dump(result, f)
-        return result
+        return result ,annos3d
   
     def pointcloud2image(self, lidar):
         '''
