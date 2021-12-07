@@ -10,9 +10,11 @@ class Inference(object):
         self.ckptdir=ckptdir
         self.current_segment=None
         self.current_segment_frame=None
+        self.gt_data=None
         # self.fusion=Fusion(root,ckptdir)
     
     def main(self):
+        self.load_ground_truth_data()
         # result_of_fusion,annos3d= self.fusion.main()
         with open("frustum.pkl",'rb')as f:
             result_of_fusion=pickle.load(f)
@@ -21,13 +23,14 @@ class Inference(object):
         for result in result_of_fusion:
             if self.current_segment!= result["segment_id"]:
                 self.current_segment=result["segment_id"]
-                self.load_ground_truth_data(self.root+'/'+self.current_segment)
-
-    def load_ground_truth_data(self,dirpath):
-        dirpath=dirpath+"/"+self.current_segment+".pkl"
+            if self.current_segment_frame!=result["frame_id"]:
+                self.current_segment_frame=result["frame_id"]
+                        
+    
+    def load_ground_truth_data(self):
+        dirpath="./data/waymo/waymo_infos_val.pkl"
         with open(dirpath,"rb") as f:
-            data=pickle.load(f)
-        print(data)
+            self.gt_data=pickle.load(f)
 
 if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"

@@ -60,13 +60,14 @@ class Waymo2DLoader(torch.utils.data.Dataset):
         imgs = list(sorted(os.listdir(img_path)))[3:]
         self.ann_path = img_path + "camera_" + segment + '.pkl'
         self.extrinsic = np.load(img_path + "extrinsic.npy")
+        self.length=len(os.listdir(self.root+segment+'/'))-2
         self.intrinsic, self.disorted_coeff= self.make_intrinsic_mat(np.load(img_path + "intrinsic.npy"))
         front_anno, front_left_anno, front_right_anno, side_left_anno, side_right_anno = self.get_annotation()
-        self.FRONT = Camera(img_path, imgs[:199], front_anno, "FRONT")
-        self.FRONT_LEFT = Camera(img_path, imgs[199:398], front_left_anno, "FRONT_LEFT")
-        self.FRONT_RIGHT = Camera(img_path, imgs[398:597], front_right_anno, "FRONT_RIGHT")
-        self.SIDE_LEFT = Camera(img_path, imgs[597:796], side_left_anno, "SIDE_LEFT")
-        self.SIDE_RIGHT = Camera(img_path, imgs[796:], side_right_anno, "SIDE_RIGHT")
+        self.FRONT = Camera(img_path, imgs[:self.length], front_anno, "FRONT")
+        self.FRONT_LEFT = Camera(img_path, imgs[self.length:self.length*2], front_left_anno, "FRONT_LEFT")
+        self.FRONT_RIGHT = Camera(img_path, imgs[self.length*2:self.length*3], front_right_anno, "FRONT_RIGHT")
+        self.SIDE_LEFT = Camera(img_path, imgs[self.length*3:self.length*4], side_left_anno, "SIDE_LEFT")
+        self.SIDE_RIGHT = Camera(img_path, imgs[self.length*4:], side_right_anno, "SIDE_RIGHT")
 
     def get_annotation(self):
         front_anno = []

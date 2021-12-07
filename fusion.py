@@ -127,11 +127,11 @@ class Fusion(object):
         return extrinscis
     
     def main(self):
-        annos3d, annos2d = self.val.val() # model 
-        # with open("anno3d.pkl", 'rb')as f:
-        #     annos3d = pickle.load(f)
-        # with open("anno2d.pkl", 'rb')as f:
-        #     annos2d = pickle.load(f)
+        # annos3d, annos2d = self.val.val() # model 
+        with open("anno3d.pkl", 'rb')as f:
+            annos3d = pickle.load(f)
+        with open("anno2d.pkl", 'rb')as f:
+            annos2d = pickle.load(f)
         sequence = annos2d[0]["frame_id"][0][0:-4]
         self.current_intrinsics = annos2d[0]["intrinsic"]
         self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
@@ -149,7 +149,7 @@ class Fusion(object):
             res=self.is_box_in_frustum(frustum_for_onescene,box3d_to_2d,xyz)
             img3d["frustum"] = res
             img3d["segment_id"]=sequence
-            img3d["frame_id"] = sequence+'/0'+annos2d[i]["frame_id"][0][-3:]
+            img3d["frame_id"] = sequence+'_'+annos2d[i]["frame_id"][0][-3:]
             img3d["filename"] = annos2d[i]["image_id"]
             result.append(img3d)
         with open("frustum.pkl", 'wb') as f:
