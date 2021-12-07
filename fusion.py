@@ -238,6 +238,7 @@ class Fusion(object):
                 if label != "unknown":
                     if annos[camera_num]['scores'][i]>0.5: # Erase not Critical Object
                         projected_point = {}
+                        projected_point['score']=annos[camera_num]['scores'][i]
                         projected_point["label"] = label
                         box=annos[camera_num]["boxes"][i]
                         box = np.floor(box).astype(np.int) # Change Float to int

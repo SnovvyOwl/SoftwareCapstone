@@ -11,26 +11,53 @@ class Inference(object):
         self.current_segment=None
         self.current_segment_frame=None
         self.gt_data=None
+        self.PVRCNN_result=None
+        self.result_of_fusion=None
+        self.updated_result=[]
         # self.fusion=Fusion(root,ckptdir)
-    
-    def main(self):
-        self.load_ground_truth_data()
-        # result_of_fusion,annos3d= self.fusion.main()
-        with open("frustum.pkl",'rb')as f:
-            result_of_fusion=pickle.load(f)
-        with open("anno3d.pkl", 'rb')as f:
-            annos3d = pickle.load(f)
-        for result in result_of_fusion:
-            if self.current_segment!= result["segment_id"]:
-                self.current_segment=result["segment_id"]
-            if self.current_segment_frame!=result["frame_id"]:
-                self.current_segment_frame=result["frame_id"]
-                        
     
     def load_ground_truth_data(self):
         dirpath="./data/waymo/waymo_infos_val.pkl"
         with open(dirpath,"rb") as f:
             self.gt_data=pickle.load(f)
+
+    def main(self):
+        self.load_ground_truth_data()
+        # self.result_of_fusion,self.PVRCNN_result= self.fusion.main()
+        # self.PVRCNN_result=annos3d
+        with open("frustum.pkl",'rb')as f:
+            self.result_of_fusion=pickle.load(f)
+        with open("anno3d.pkl", 'rb')as f:
+            self.PVRCNN_result = pickle.load(f)
+        self.add_result()
+        for frame in self.updated_result:
+            for gt_frame in self.gt_data:
+                if frame["frame_id"]==gt_frame["frame_id"]:
+                    # Calcluate IoU For One Frame
+                    iou_mat=boxes_iou3d_gpu(torch.tensor(gt_frame["annos"]["gt_boxes_lidar"].astype("float32")).cuda(),torch.tensor(frame["boxes_lidar"]).cuda())
+                    iou_mat=iou_mat.cpu().numpy()
+                    print(iou_mat)
+                    break
+    
+    def add_result(self): 
+        for result_frame in self.result_of_fusion:
+            update_frame={}
+            for PV_RCNN_frame in self.PVRCNN_result:
+                if PV_RCNN_frame["frame_id"]==result_frame["frame_id"]:
+                    update_frame["name"]=PV_RCNN_frame["name"]
+                    update_frame["score"]=PV_RCNN_frame["score"]
+                    update_frame["frame_id"]=PV_RCNN_frame["frame_id"]
+                    update_frame["boxes_lidar"]=PV_RCNN_frame["boxes_lidar"]
+                    update_frame["metadata"]=PV_RCNN_frame["metadata"]
+                    for frustum in result_frame["frustum"]:
+                        if frustum["is_generated"] is True:
+                            if frustum["label"]!="Sign":
+                                update_frame["name"]=np.append(update_frame["name"],frustum["label"])
+                                update_frame["score"]=np.append(update_frame["score"],frustum["score"].cpu().numpy())
+                                update_frame["boxes_lidar"]=np.vstack((update_frame["boxes_lidar"],frustum["PVRCNN_Formed_Box"].astype("float32")))
+                            
+                    self.updated_result.append(update_frame)
+                    break
 
 if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"
