@@ -289,11 +289,15 @@ class Fusion(object):
                                         center_frustum=np.array(list(set(center_frustum)-set(idxmin)))
                                     elif len(idxmin)>len(idxmax):
                                         center_frustum=np.array(list(set(center_frustum)-set(idxmax)))
-                                elif len(idxmax)!=len(center_frustum)/3:
+                                    else:
+                                        center_frustum=np.array(list(set(idxmax)))
+                                elif len(idxmax)!=len(center_frustum):
                                     if len(idxmin)<len(idxmax):
                                         center_frustum=np.array(list(set(center_frustum)-set(idxmin)))
                                     elif len(idxmin)>len(idxmax):
                                         center_frustum=np.array(list(set(center_frustum)-set(idxmax)))
+                                    else:
+                                        center_frustum=np.array(list(set(idxmax)))
                             if len(xyz[center_frustum])!=0:
                                 projected_point["centroid"] = xyz[center_frustum]
                                 projected_point["centroid_idx"] = center_frustum
