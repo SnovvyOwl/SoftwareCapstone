@@ -38,8 +38,25 @@ class Inference(object):
                     iou_mat=boxes_iou3d_gpu(torch.tensor(gt_frame["annos"]["gt_boxes_lidar"].astype("float32")).cuda(),torch.tensor(frame["boxes_lidar"]).cuda())
                     iou_mat=iou_mat.cpu().numpy()
                     iou_mat=np.delete(iou_mat,sign_idx,axis=0)
-                     
+                    gt_name=np.delete(gt_frame["annos"]["name"],sign_idx,axis=0)
+                    self.match_correction(gt_name,frame["name"],iou_mat,0.5)
                     break
+    
+    def match_correction(self,gt_name,frame_name,iou_mat,thresh=0.5):
+        TP=0
+        FP=0
+        match_result=np.array(np.where(iou_mat>thresh)).T
+        for match in match_result:
+            if gt_name[match[0]]==frame_name[match[1]]:
+                TP+=1
+                print(iou_mat[match[0],match[1]])
+            else:
+                FP+=1
+        all_detection=iou_mat.shape[1]
+        all_gt=len(gt_name)
+        print(float(TP)/float(all_detection))
+        print(float(TP)/float(all_gt))
+        return all_gt,all_detection,TP,FP
     
     def add_result(self): 
         for result_frame in self.result_of_fusion:
