@@ -1,7 +1,6 @@
-from operator import pos
-from re import I, T
+from re import I, T, match
 import numpy as np
-from numpy.core.numeric import False_
+from numpy import ma
 from modelmanager import ModelManager
 import numpy as np
 import torch
@@ -11,6 +10,7 @@ from tqdm import tqdm
 import PVRCNN.utils.common_utils
 import PVRCNN.ops.roiaware_pool3d.roiaware_pool3d_utils
 import math
+from PVRCNN.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu
 CAMMERA_NUM = 5
 
 def remove_points_in_boxes3d(points, boxes3d):
@@ -146,7 +146,7 @@ class Fusion(object):
             point_planes = self.pointcloud2image(xyz)
             frustum_for_onescene = self.make_frustum(annos2d[i]["anno"], xyz, point_planes)
             box3d_to_2d=self.box_is_in_plane(annos3d[i])
-            res=self.is_box_in_frustum(frustum_for_onescene,box3d_to_2d,xyz)
+            res=self.is_box_in_frustum(frustum_for_onescene,box3d_to_2d,xyz,annos3d[i]["boxes_lidar"])
             img3d["frustum"] = res
             img3d["segment_id"]=sequence
             img3d["frame_id"] = sequence+'_'+annos2d[i]["frame_id"][0][-3:]
@@ -359,7 +359,7 @@ class Fusion(object):
         box=[np.min(to_image[:,0]),np.min(to_image[:,1]),np.max(to_image[:,0]),np.max(to_image[:,1])]
         return box
 
-    def is_box_in_frustum(self,frustum_per_onescene,boxes,xyz):
+    def is_box_in_frustum(self,frustum_per_onescene,boxes,xyz,pvrcnn_box):
         '''
             DO: generated 2d Box(3D_box -> 2d box) is in frustum?
             INPUT: frustum_per_onescene = Frustum for One Frame
@@ -400,12 +400,29 @@ class Fusion(object):
                             break
             if found is False:
                 if frustum["centroid"] is not None:
-                    frustum_per_onescene[i]["is_generated"]=True
+                    
                     frustum_per_onescene[i]["3d_box"],frustum_per_onescene[i]["seg"],frustum_per_onescene[i]["PVRCNN_Formed_Box"]=self.make_3d_box(cp_xyz[frustum["large_frustum"]],frustum["centroid"],frustum["large_frustum"])
+                    matched_box=self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"],pvrcnn_box)
+                    if matched_box is not None:
+                        frustum_per_onescene[i]["is_generated"]=False
+                        frustum_per_onescene[i]["PVRCNN_Formed_Box"]=matched_box
+                        frustum_per_onescene[i]["3d_box"]=boxes_to_corners_3d(matched_box)
+                    else:
+                        frustum_per_onescene[i]["is_generated"]=True
                 else:
                     frustum_per_onescene[i]["is_generated"]=False
                     frustum_per_onescene[i]["3d_box"]=None
         return frustum_per_onescene
+   
+    def is_box_in_box(self,generate_Box,PVRCNN_boxes):
+        generate_Box=np.vstack((generate_Box,np.zeros(7)))
+        mat=boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(),torch.tensor(PVRCNN_boxes).cuda())
+        mat=mat.cpu().numpy()
+        match=np.where(mat[0]>0.3)[0]
+        if len(match)!=0:
+            return PVRCNN_boxes[match]
+        else:
+            return None
 
     def make_3d_box(self,frustum_point,centroid_point,frustum_idx):
         """

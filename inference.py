@@ -79,6 +79,7 @@ class Inference(object):
                     self.match_correction(gt_name,frame["name"],iou_mat,frame["score"])
                 
                     break
+                
         print(self.pedestrianAP.get_AP())
         print(self.vehicleAP.get_AP())
         print(self.cyclistAP.get_AP())
