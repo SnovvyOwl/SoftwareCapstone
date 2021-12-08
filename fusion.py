@@ -418,8 +418,9 @@ class Fusion(object):
         generate_Box=np.vstack((generate_Box,np.zeros(7)))
         mat=boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(),torch.tensor(PVRCNN_boxes).cuda())
         mat=mat.cpu().numpy()
-        match=np.where(mat[0]>0.3)[0]
+        match=np.where(mat[0]>0.2)[0]
         if len(match)!=0:
+            match=match[0]
             return PVRCNN_boxes[match]
         else:
             return None
