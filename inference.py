@@ -34,9 +34,11 @@ class Inference(object):
             for gt_frame in self.gt_data:
                 if frame["frame_id"]==gt_frame["frame_id"]:
                     # Calcluate IoU For One Frame
+                    sign_idx=np.where(gt_frame["annos"]["name"]=="Sign")
                     iou_mat=boxes_iou3d_gpu(torch.tensor(gt_frame["annos"]["gt_boxes_lidar"].astype("float32")).cuda(),torch.tensor(frame["boxes_lidar"]).cuda())
                     iou_mat=iou_mat.cpu().numpy()
-                    print(iou_mat)
+                    iou_mat=np.delete(iou_mat,sign_idx,axis=0)
+                     
                     break
     
     def add_result(self): 
@@ -49,6 +51,7 @@ class Inference(object):
                     update_frame["frame_id"]=PV_RCNN_frame["frame_id"]
                     update_frame["boxes_lidar"]=PV_RCNN_frame["boxes_lidar"]
                     update_frame["metadata"]=PV_RCNN_frame["metadata"]
+       
                     for frustum in result_frame["frustum"]:
                         if frustum["is_generated"] is True:
                             if frustum["label"]!="Sign":
