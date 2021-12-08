@@ -4,6 +4,23 @@ import torch
 import open3d as o3d
 from fusion import Fusion
 from PVRCNN.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu
+class MeanAveragePrecision(object):
+    def __init__(self):
+        self.true_positive=[]
+        self.score=[]
+        self.gt_len=0
+        self.detection_len=0
+        self.name=None
+    
+    def setting(self,name,gt_len,detection_len):
+        self.name=name
+        self.gt_len=gt_len
+        self.detection_len=detection_len
+    
+    def add(self,score,tp):
+        self.true_positive.append(tp)
+        self.score.append(score)
+
 class Inference(object):
     def __init__(self,root,ckptdir):
         self.root=root
@@ -43,7 +60,7 @@ class Inference(object):
                     iou_mat=iou_mat.cpu().numpy()
                     iou_mat=np.delete(iou_mat,sign_idx,axis=0)
                     gt_name=np.delete(gt_frame["annos"]["name"],sign_idx,axis=0)
-                    frame_all_gt,frame_all_detection,frame_TP,frame_FP=self.match_correction(gt_name,frame["name"],iou_mat,0.3)
+                    frame_all_gt,frame_all_detection,frame_TP,frame_FP=self.match_correction(gt_name,frame["name"],iou_mat,frame["score"],0.3)
                     all_gt+=frame_all_gt
                     all_detection+=frame_all_detection
                     all_TP+=frame_TP
@@ -55,7 +72,7 @@ class Inference(object):
         print("Precision : {0}".format(float(all_TP)/float(all_detection)))
         print("Recall : {0}".format(float(all_TP)/float(all_gt)))
                     
-    def match_correction(self,gt_name,frame_name,iou_mat,thresh=0.4):
+    def match_correction(self,gt_name,frame_name,iou_mat,score,thresh=0.4):
         TP=0
         FP=0
         match_result=np.array(np.where(iou_mat>thresh)).T

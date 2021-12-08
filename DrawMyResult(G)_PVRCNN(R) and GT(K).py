@@ -77,9 +77,7 @@ def boxes_to_corners_3d(boxes3d):
 
 
 if __name__ == "__main__":
-    root = "./data/waymo/waymo_processed_data/"
-    sequence = 'segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
-    ckpt = "./checkpoints/checkpoint_epoch_30.pth"
+    frame_idx=1
     dirpath="./data/waymo/waymo_infos_val.pkl"
     lines=[[0,1],[1,2],[2,3],[0,3],[0,4],[4,5],[5,6],[6,7],[4,7],[1,5],[2,6],[3,7]]
     fusion_color=[[0, 1, 0] for i in range(len(lines))]
@@ -87,8 +85,8 @@ if __name__ == "__main__":
     ## GT BOX######################
     with open(dirpath,"rb") as f:
         gt_data=pickle.load(f)
-    print(gt_data[5]["frame_id"])
-    gt_boxes=gt_data[5]["annos"]["gt_boxes_lidar"]
+    print(gt_data[5*frame_idx]["frame_id"])
+    gt_boxes=gt_data[5*frame_idx]["annos"]["gt_boxes_lidar"]
     groudTruth_boxes=[]
     corners3d=boxes_to_corners_3d(gt_boxes)
     for box in corners3d:
@@ -97,12 +95,10 @@ if __name__ == "__main__":
         box3d.lines=o3d.utility.Vector2iVector(lines)
         groudTruth_boxes.append(box3d)
     ############################################
-    fu=Fusion( root,ckpt)
-    frame_idx=1
+
+    
     with open("anno3d.pkl",'rb')as f:
         annos3d=pickle.load(f)
-    with open("anno2d.pkl",'rb')as f:
-        annos2d=pickle.load(f)
     with open("frustum.pkl",'rb')as f:
         frustum=pickle.load(f)
     xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/0005.npy")

@@ -432,6 +432,9 @@ class Fusion(object):
         # PCA
     
         # Calculate Center Point
+     
+        # center_x=np.mean(seg_cluster[:][:,0])
+        # center_y=np.mean(seg_cluster[:][:,1])
         center_x=(np.max(seg_cluster[:][:,0])+np.min(seg_cluster[:][:,0]))/2
         center_y=(np.max(seg_cluster[:][:,1])+np.min(seg_cluster[:][:,1]))/2
         center_z=(np.max(seg_cluster[:][:,2])+np.min(seg_cluster[:][:,2]))/2
