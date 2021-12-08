@@ -11,22 +11,28 @@ class AveragePrecision(object):
         self.gt_len=0
         self.detection_len=0
         self.name=_name
+        self.ap=0
     
     def frame_add(self,gt_len,detection_len):
         self.gt_len+=gt_len
-        self.detection_len=detection_len
-    def add(self,score,tp,iou):
+        self.detection_len+=detection_len
+    
+    def add(self,score,tp,iou,match):
         if self.true_positive.shape[0]!=0:
-            self.true_positive=np.vstack((self.true_positive,np.array([score,tp,iou])))
+            self.true_positive=np.vstack((self.true_positive,np.array([score,tp,iou,match])))
         else:
-            self.true_positive=np.array([score,tp,iou])
+            self.true_positive=np.array([score,tp,iou,match])
        
     def get_AP(self):
         coffindence=[0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0.0]
+        pre_recall=0
         for cs in coffindence:
-            current=np.where(self.true_positive[:,0]>cs)
-            print(cs)
-        return NotImplementedError
+            current=np.where(self.true_positive[:,0]>cs)[0]
+            recall=len(np.where(self.true_positive[current,1]==1.0)[0])/self.gt_len
+            precision=len(np.where(self.true_positive[current,1]==1.0)[0])/len(current)
+            self.ap+=(recall-pre_recall)*precision
+            pre_recall=recall
+        return self.ap
     
 class Inference(object):
     def __init__(self,root,ckptdir):
@@ -70,10 +76,12 @@ class Inference(object):
                     iou_mat=iou_mat.cpu().numpy()
                     iou_mat=np.delete(iou_mat,sign_idx,axis=0)
                     gt_name=np.delete(gt_frame["annos"]["name"],sign_idx,axis=0)
-                    self.match_correction(gt_name,frame["name"],iou_mat,frame["score"],0.5)
+                    self.match_correction(gt_name,frame["name"],iou_mat,frame["score"])
                 
                     break
-        self.pedestrianAP.get_AP()
+        print(self.pedestrianAP.get_AP())
+        print(self.vehicleAP.get_AP())
+        print(self.cyclistAP.get_AP())
         # print("True Prediction: {0}".format(all_TP))
         # print("ALL_GT: {0}".format(all_gt))
         # print("ALL_Det: {0}".format(all_detection))
@@ -81,45 +89,57 @@ class Inference(object):
         # print("Recall : {0}".format(float(all_TP)/float(all_gt)))
   
 
-    def match_correction(self,gt_name,frame_name,_iou_mat,score,thresh=0.5):
+    def match_correction(self,gt_name,frame_name,_iou_mat,score,unmatched_threshold=0.5,matched_threshold=0.5):
         iou_mat=_iou_mat.T
         for i, name in enumerate(frame_name):
             if name =="Pedestrian":
                 gt_idx=np.where(iou_mat[i]>0)[0]
                 if len(gt_idx)==0:
-                    self.pedestrianAP.add(score[i],0,0)
+                    self.pedestrianAP.add(score[i],False,0,False)
                 else:
                     if len(gt_idx)>1:
                         gt_idx=self.find_max(gt_idx,i,iou_mat)
-                    if gt_name[gt_idx]==frame_name[i]:
-                        found=(iou_mat[i,gt_idx]>thresh)
                     else:
-                        found=0
-                    self.pedestrianAP.add(score[i],found,iou_mat[i,gt_idx])
+                        gt_idx=gt_idx[0]
+                    if gt_name[gt_idx]==frame_name[i]:
+                        found=bool(iou_mat[i,gt_idx]>unmatched_threshold)
+                        match=bool(iou_mat[i,gt_idx]>matched_threshold)
+                    else:
+                        found=False
+                        match=False
+                    self.pedestrianAP.add(score[i],found,iou_mat[i,gt_idx],match)
             elif name =="Vehicle":
                 gt_idx=np.where(iou_mat[i]>0)[0]
                 if len(gt_idx)==0:
-                    self.vehicleAP.add(score[i],0,0)
+                    self.vehicleAP.add(score[i],False,0,False)
                 else:
                     if len(gt_idx)>1:
                         gt_idx=self.find_max(gt_idx,i,iou_mat)
-                    if gt_name[gt_idx]==frame_name[i]:
-                        found=(iou_mat[i,gt_idx]>thresh)
                     else:
-                        found=0
-                    self.vehicleAP.add(score[i],found,iou_mat[i,gt_idx])
+                        gt_idx=gt_idx[0]
+                    if gt_name[gt_idx]==frame_name[i]:
+                        found=bool(iou_mat[i,gt_idx]>unmatched_threshold)
+                        match=bool(iou_mat[i,gt_idx]>matched_threshold)
+                    else:
+                        found=False
+                        match=False
+                    self.vehicleAP.add(score[i],found,iou_mat[i,gt_idx],match)
             elif name =="Cyclist":
                 gt_idx=np.where(iou_mat[i]>0)[0]
                 if len(gt_idx)==0:
-                    self.cyclistAP.add(score[i],0,0)
+                    self.cyclistAP.add(score[i],False,0,False)
                 else:
                     if len(gt_idx)>1:
                         gt_idx=self.find_max(gt_idx,i,iou_mat)
-                    if gt_name[gt_idx]==frame_name[i]:
-                        found=(iou_mat[i,gt_idx]>thresh)
                     else:
-                        found=0
-                    self.cyclistAP.add(score[i],found,iou_mat[i,gt_idx])  
+                        gt_idx=gt_idx[0]
+                    if gt_name[gt_idx]==frame_name[i]:
+                        found=bool(iou_mat[i,gt_idx]>unmatched_threshold)
+                        match=bool(iou_mat[i,gt_idx]>matched_threshold)
+                    else:
+                        found=False
+                        match=False
+                    self.cyclistAP.add(score[i],found,iou_mat[i,gt_idx],match)  
         self.pedestrianAP.frame_add(len(np.where(gt_name=="Pedestrian")[0]),len(np.where(frame_name=="Pedestrian")[0]))
         self.vehicleAP.frame_add(len(np.where(gt_name=="Vehicle")[0]),len(np.where(frame_name=="Vehicle")[0]))
         self.cyclistAP.frame_add(len(np.where(gt_name=="Cyclist")[0]),len(np.where(frame_name=="Cyclist")[0]))
