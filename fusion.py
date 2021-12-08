@@ -413,14 +413,21 @@ class Fusion(object):
                     frustum_per_onescene[i]["is_generated"]=False
                     frustum_per_onescene[i]["3d_box"]=None
         return frustum_per_onescene
-   
+    @staticmethod
+    def find_max(gt_idx,iou_mat):
+        return gt_idx[np.argmax(iou_mat[gt_idx])]
+
     def is_box_in_box(self,generate_Box,PVRCNN_boxes):
         generate_Box=np.vstack((generate_Box,np.zeros(7)))
         mat=boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(),torch.tensor(PVRCNN_boxes).cuda())
         mat=mat.cpu().numpy()
-        match=np.where(mat[0]>0.2)[0]
+        match=np.where(mat[0]>0.15)[0]
+        submatch=np.where(mat[0]>0)[0]
+        if len(match)>1:
+            match=self.find_max(match,mat)
+        if len(match)!=len(submatch):
+            print(submatch)
         if len(match)!=0:
-            match=match[0]
             return PVRCNN_boxes[match]
         else:
             return None
