@@ -22,6 +22,10 @@ class Inference(object):
             self.gt_data=pickle.load(f)
 
     def main(self):
+        all_gt=0
+        all_detection=0
+        all_TP=0
+        all_FP=0
         self.load_ground_truth_data()
         # self.result_of_fusion,self.PVRCNN_result= self.fusion.main()
         # self.PVRCNN_result=annos3d
@@ -39,23 +43,29 @@ class Inference(object):
                     iou_mat=iou_mat.cpu().numpy()
                     iou_mat=np.delete(iou_mat,sign_idx,axis=0)
                     gt_name=np.delete(gt_frame["annos"]["name"],sign_idx,axis=0)
-                    self.match_correction(gt_name,frame["name"],iou_mat,0.5)
+                    frame_all_gt,frame_all_detection,frame_TP,frame_FP=self.match_correction(gt_name,frame["name"],iou_mat,0.3)
+                    all_gt+=frame_all_gt
+                    all_detection+=frame_all_detection
+                    all_TP+=frame_TP
+                    all_FP+=frame_FP
                     break
-    
-    def match_correction(self,gt_name,frame_name,iou_mat,thresh=0.5):
+        print("True Prediction: {0}".format(all_TP))
+        print("ALL_GT: {0}".format(all_gt))
+        print("ALL_Det: {0}".format(all_detection))
+        print("Precision : {0}".format(float(all_TP)/float(all_detection)))
+        print("Recall : {0}".format(float(all_TP)/float(all_gt)))
+                    
+    def match_correction(self,gt_name,frame_name,iou_mat,thresh=0.4):
         TP=0
         FP=0
         match_result=np.array(np.where(iou_mat>thresh)).T
         for match in match_result:
             if gt_name[match[0]]==frame_name[match[1]]:
                 TP+=1
-                print(iou_mat[match[0],match[1]])
             else:
                 FP+=1
         all_detection=iou_mat.shape[1]
         all_gt=len(gt_name)
-        print(float(TP)/float(all_detection))
-        print(float(TP)/float(all_gt))
         return all_gt,all_detection,TP,FP
     
     def add_result(self): 
