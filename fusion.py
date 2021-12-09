@@ -11,7 +11,9 @@ import PVRCNN.utils.common_utils
 import PVRCNN.ops.roiaware_pool3d.roiaware_pool3d_utils
 import math
 from PVRCNN.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu
+
 CAMMERA_NUM = 5
+
 
 def remove_points_in_boxes3d(points, boxes3d):
     """
@@ -24,20 +26,21 @@ def remove_points_in_boxes3d(points, boxes3d):
     """
     boxes3d, is_numpy = PVRCNN.utils.common_utils.check_numpy_to_torch(boxes3d)
     points, is_numpy = PVRCNN.utils.common_utils.check_numpy_to_torch(points)
-    point_masks =  PVRCNN.ops.roiaware_pool3d.roiaware_pool3d_utils.points_in_boxes_cpu(points[:, 0:3], boxes3d)
+    point_masks = PVRCNN.ops.roiaware_pool3d.roiaware_pool3d_utils.points_in_boxes_cpu(points[:, 0:3], boxes3d)
     points = points[point_masks.sum(dim=0) == 0]
 
     return points.numpy() if is_numpy else points
 
-def iou2d(box1,box2):
+
+def iou2d(box1, box2):
     '''
         DO : Calculate 2D IOU
         INPUT : box1[4], box2[4]  box = (x1, y1, x2, y2)
         OUTPUT : IoU   
     '''
-  
-    box1_area = (box1[2] - box1[0] ) * (box1[3] - box1[1])
-    box2_area = (box2[2] - box2[0] ) * (box2[3] - box2[1])
+
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
 
     # obtain x1, y1, x2, y2 of the intersection
     x1 = max(box1[0], box2[0])
@@ -52,6 +55,7 @@ def iou2d(box1,box2):
     inter = w * h
     iou = inter / (box1_area + box2_area - inter)
     return iou
+
 
 def check_numpy_to_torch(x):
     if isinstance(x, np.ndarray):
@@ -75,7 +79,7 @@ def rotate_points_along_z(points, angle):
     zeros = angle.new_zeros(points.shape[0])
     ones = angle.new_ones(points.shape[0])
     rot_matrix = torch.stack((
-        cosa,  sina, zeros,
+        cosa, sina, zeros,
         -sina, cosa, zeros,
         zeros, zeros, ones
     ), dim=1).view(-1, 3, 3).float()
@@ -119,18 +123,17 @@ class Fusion(object):
         self.current_extrinsics = None
         self.root = root
 
-
     def make_extrinsic_mat(self, param):
         extrinscis = []
         for i in range(CAMMERA_NUM):
             extrinscis.append(param[i])
         return extrinscis
-    
+
     def main(self):
         # annos3d, annos2d = self.val.val() # model 
-        with open("anno3d.pkl", 'rb')as f:
+        with open("anno3d.pkl", 'rb') as f:
             annos3d = pickle.load(f)
-        with open("anno2d.pkl", 'rb')as f:
+        with open("anno2d.pkl", 'rb') as f:
             annos2d = pickle.load(f)
         sequence = annos2d[0]["frame_id"][0][0:-4]
         self.current_intrinsics = annos2d[0]["intrinsic"]
@@ -142,61 +145,69 @@ class Fusion(object):
                 self.current_intrinsics = annos2d[i]["intrinsic"]
                 self.current_extrinsics = self.make_extrinsic_mat(annos2d[i]["extrinsic"])
                 annos2d[i]["frame_id"][0][0:-4] = sequence
-            xyz = np.load(self.root+sequence+'/0'+annos2d[i]["frame_id"][0][-3:]+".npy")[:, :3]
+            xyz = np.load(self.root + sequence + '/0' + annos2d[i]["frame_id"][0][-3:] + ".npy")[:, :3]
             point_planes = self.pointcloud2image(xyz)
             frustum_for_onescene = self.make_frustum(annos2d[i]["anno"], xyz, point_planes)
-            box3d_to_2d=self.box_is_in_plane(annos3d[i])
-            res=self.is_box_in_frustum(frustum_for_onescene,box3d_to_2d,xyz,annos3d[i]["boxes_lidar"])
+            box3d_to_2d = self.box_is_in_plane(annos3d[i])
+            res = self.is_box_in_frustum(frustum_for_onescene, box3d_to_2d, xyz, annos3d[i]["boxes_lidar"])
             img3d["frustum"] = res
-            img3d["segment_id"]=sequence
-            img3d["frame_id"] = sequence+'_'+annos2d[i]["frame_id"][0][-3:]
+            img3d["segment_id"] = sequence
+            img3d["frame_id"] = sequence + '_' + annos2d[i]["frame_id"][0][-3:]
             img3d["filename"] = annos2d[i]["image_id"]
             result.append(img3d)
         with open("frustum.pkl", 'wb') as f:
             pickle.dump(result, f)
-        return result ,annos3d
-  
+        return result, annos3d
+
     def pointcloud2image(self, lidar):
         '''
             DO: Point Cloud-> image Plane
             INPUT: Lidar PonitCloud
             OUTPUT: lidar point plane
         '''
-        
+
         point_planes = []
         one = np.ones((len(lidar), 1))
         cp_lidar = np.concatenate((lidar, one), axis=1)
         cp_lidar = torch.from_numpy(cp_lidar).cuda()
         #  For Front Cameras
         for camera_num in range(3):
-            to_plane = torch.matmul(torch.linalg.inv(torch.from_numpy(self.current_extrinsics[camera_num]).type(torch.float64).cuda()), cp_lidar.T).T
-            change_coordinate = torch.stack([-1*to_plane[:, 1], -1*to_plane[:, 2], to_plane[:, 0]], dim=0).cpu().numpy().T
-            lidar_idx=np.array((range(len(lidar))))
-            negative_idx=np.where(change_coordinate[:,2]<=0)
-            change_coordinate=np.delete(change_coordinate,negative_idx,axis=0).T
-            lidar_idx=np.delete(lidar_idx,negative_idx)
-            change_coordinate=torch.from_numpy(change_coordinate).type(torch.float64).cuda()
-            to_image = torch.matmul(torch.from_numpy(self.current_intrinsics[camera_num]).type(torch.float64).cuda(), change_coordinate).T
-            to_image = to_image/to_image[:, 2, None]
-            point_plane = self.point_to_tensor(to_image,lidar_idx, 1920, 1280) #Front Image Size(1920,1280)
+            to_plane = torch.matmul(
+                torch.linalg.inv(torch.from_numpy(self.current_extrinsics[camera_num]).type(torch.float64).cuda()),
+                cp_lidar.T).T
+            change_coordinate = torch.stack([-1 * to_plane[:, 1], -1 * to_plane[:, 2], to_plane[:, 0]],
+                                            dim=0).cpu().numpy().T
+            lidar_idx = np.array((range(len(lidar))))
+            negative_idx = np.where(change_coordinate[:, 2] <= 0)
+            change_coordinate = np.delete(change_coordinate, negative_idx, axis=0).T
+            lidar_idx = np.delete(lidar_idx, negative_idx)
+            change_coordinate = torch.from_numpy(change_coordinate).type(torch.float64).cuda()
+            to_image = torch.matmul(torch.from_numpy(self.current_intrinsics[camera_num]).type(torch.float64).cuda(),
+                                    change_coordinate).T
+            to_image = to_image / to_image[:, 2, None]
+            point_plane = self.point_to_tensor(to_image, lidar_idx, 1920, 1280)  # Front Image Size(1920,1280)
             point_planes.append(point_plane.numpy())
-        
+
         #  For Side Cameras
         for camera_num in [3, 4]:
-            to_plane = torch.matmul(torch.linalg.inv(torch.from_numpy(self.current_extrinsics[camera_num]).type(torch.float64).cuda()), cp_lidar.T).T
-            change_coordinate = torch.stack([-1*to_plane[:, 1], -1*to_plane[:, 2], to_plane[:, 0]], dim=0).cpu().numpy().T
-            lidar_idx=np.array((range(len(lidar))))
-            negative_idx=np.where(change_coordinate[:,2]<=0)
-            change_coordinate=np.delete(change_coordinate,negative_idx,axis=0).T
-            lidar_idx=np.delete(lidar_idx,negative_idx)
-            change_coordinate=torch.from_numpy(change_coordinate).type(torch.float64).cuda()
-            to_image = torch.matmul(torch.from_numpy(self.current_intrinsics[camera_num]).type(torch.float64).cuda(), change_coordinate).T
-            to_image = to_image/to_image[:, 2, None]
-            point_plane = self.point_to_tensor(to_image, lidar_idx,1920, 886) # Side Image Size (1920,886)
+            to_plane = torch.matmul(
+                torch.linalg.inv(torch.from_numpy(self.current_extrinsics[camera_num]).type(torch.float64).cuda()),
+                cp_lidar.T).T
+            change_coordinate = torch.stack([-1 * to_plane[:, 1], -1 * to_plane[:, 2], to_plane[:, 0]],
+                                            dim=0).cpu().numpy().T
+            lidar_idx = np.array((range(len(lidar))))
+            negative_idx = np.where(change_coordinate[:, 2] <= 0)
+            change_coordinate = np.delete(change_coordinate, negative_idx, axis=0).T
+            lidar_idx = np.delete(lidar_idx, negative_idx)
+            change_coordinate = torch.from_numpy(change_coordinate).type(torch.float64).cuda()
+            to_image = torch.matmul(torch.from_numpy(self.current_intrinsics[camera_num]).type(torch.float64).cuda(),
+                                    change_coordinate).T
+            to_image = to_image / to_image[:, 2, None]
+            point_plane = self.point_to_tensor(to_image, lidar_idx, 1920, 886)  # Side Image Size (1920,886)
             point_planes.append(point_plane.numpy())
         return point_planes
 
-    def point_to_tensor(self, calibrated_point, lidar_idx,width, height):
+    def point_to_tensor(self, calibrated_point, lidar_idx, width, height):
         '''
             DO: Calibrated point -> Image Plane 
             INPUT: calibrated_point = Traslation to image plane,
@@ -212,10 +223,9 @@ class Fusion(object):
             pixel_y = int(torch.floor(point[1]))
             if pixel_x > 0 and pixel_x < width:
                 if pixel_y > 0 and pixel_y < height:
-                    point_image[pixel_x][pixel_y][idx_tensor[pixel_x][pixel_y]] =lidar_idx[idx]
+                    point_image[pixel_x][pixel_y][idx_tensor[pixel_x][pixel_y]] = lidar_idx[idx]
                     idx_tensor[pixel_x][pixel_y] += 1
         return point_image.cpu()
- 
 
     def make_frustum(self, annos, xyz, point_planes):
         ''' 
@@ -236,130 +246,136 @@ class Fusion(object):
             for i, label in enumerate(annos[camera_num]["labels"]):
                 idx = None
                 if label != "unknown":
-                    if annos[camera_num]['scores'][i]>0.5: # Erase not Critical Object
+                    if annos[camera_num]['scores'][i] > 0.5:  # Erase not Critical Object
                         projected_point = {}
-                        projected_point['score']=annos[camera_num]['scores'][i]
+                        projected_point['score'] = annos[camera_num]['scores'][i]
                         projected_point["label"] = label
-                        box=annos[camera_num]["boxes"][i]
-                        box = np.floor(box).astype(np.int) # Change Float to int
+                        box = annos[camera_num]["boxes"][i]
+                        box = np.floor(box).astype(np.int)  # Change Float to int
                         frustum = np.unique(point_planes[camera_num][box[0]:box[2], box[1]:box[3]].flatten("C"))
                         idx = np.where(frustum == -1)
                         if idx is not None:
                             frustum = np.delete(frustum, idx)
                         # make 10% Large Frustum
-                        x_extend=((box[2]-box[0])*1.1)/2
-                        x_center=(box[2]+box[0])/2
-                        y_extend=((box[3]-box[1])*1.1)/2
-                        y_center=(box[3]+box[1])/2
-                        large_box=[x_center-x_extend,y_center-y_extend,x_center+x_extend,y_center+y_extend]
+                        x_extend = ((box[2] - box[0]) * 1.1) / 2
+                        x_center = (box[2] + box[0]) / 2
+                        y_extend = ((box[3] - box[1]) * 1.1) / 2
+                        y_center = (box[3] + box[1]) / 2
+                        large_box = [x_center - x_extend, y_center - y_extend, x_center + x_extend, y_center + y_extend]
                         large_box = np.floor(large_box).astype(np.int)
-                        large_frustum = np.unique(point_planes[camera_num][large_box[0]:large_box[2], large_box[1]:large_box[3]].flatten("C"))
-                        idx = np.where(large_frustum  == -1)
+                        large_frustum = np.unique(
+                            point_planes[camera_num][large_box[0]:large_box[2], large_box[1]:large_box[3]].flatten("C"))
+                        idx = np.where(large_frustum == -1)
                         if idx is not None:
-                            large_frustum = np.delete(large_frustum , idx)
-                       
-                        projected_point["large_frustum"]=large_frustum
+                            large_frustum = np.delete(large_frustum, idx)
+
+                        projected_point["large_frustum"] = large_frustum
                         projected_point["frustum"] = frustum
-                        projected_point["2d_box"]=box
+                        projected_point["2d_box"] = box
                         if frustum.size != 0:
                             # make center box
-                            x_center_extend=((box[2]-box[0])*0.1)/2
-                            y_center_extend=((box[3]-box[1])*0.1)/2
-                            center_box=[x_center-x_center_extend,y_center-y_center_extend,x_center+x_center_extend,y_center+y_center_extend]
-                            center_box=np.floor(center_box).astype(np.int)
-                            center_frustum = np.unique(point_planes[camera_num][center_box[0]:center_box[2], center_box[1]:center_box[3]].flatten("C"))
-                            idx = np.where(center_frustum  == -1)
+                            x_center_extend = ((box[2] - box[0]) * 0.1) / 2
+                            y_center_extend = ((box[3] - box[1]) * 0.1) / 2
+                            center_box = [x_center - x_center_extend, y_center - y_center_extend,
+                                          x_center + x_center_extend, y_center + y_center_extend]
+                            center_box = np.floor(center_box).astype(np.int)
+                            center_frustum = np.unique(point_planes[camera_num][center_box[0]:center_box[2],
+                                                       center_box[1]:center_box[3]].flatten("C"))
+                            idx = np.where(center_frustum == -1)
                             if idx is not None:
-                                center_frustum = np.delete(center_frustum , idx)
-                            if len(center_frustum)!=0:
+                                center_frustum = np.delete(center_frustum, idx)
+                            if len(center_frustum) != 0:
                                 # divide part 
-                                in_center_box_point=xyz[center_frustum]
-                                radius = np.array((in_center_box_point[:, 0])**2+(in_center_box_point[:, 1])**2+(in_center_box_point[:, 2])**2)
-                                min_radius_point=in_center_box_point[np.argmin(radius)]
-                                max_radius_point=in_center_box_point[np.argmax(radius)]
-                                min_radius_point=np.concatenate((min_radius_point,np.array([0,0,0])),axis=0)
-                                max_radius_point=np.concatenate((max_radius_point,np.array([0,0,0])),axis=0)
-                                min_radius_point=np.reshape(min_radius_point,(2,3))
-                                max_radius_point=np.reshape(max_radius_point,(2,3))
-                                resmin,idxmin=self.segmentation(xyz[center_frustum],min_radius_point,center_frustum)
-                                resmax,idxmax=self.segmentation(xyz[center_frustum],max_radius_point,center_frustum)
+                                in_center_box_point = xyz[center_frustum]
+                                radius = np.array(
+                                    (in_center_box_point[:, 0]) ** 2 + (in_center_box_point[:, 1]) ** 2 + (
+                                    in_center_box_point[:, 2]) ** 2)
+                                min_radius_point = in_center_box_point[np.argmin(radius)]
+                                max_radius_point = in_center_box_point[np.argmax(radius)]
+                                min_radius_point = np.concatenate((min_radius_point, np.array([0, 0, 0])), axis=0)
+                                max_radius_point = np.concatenate((max_radius_point, np.array([0, 0, 0])), axis=0)
+                                min_radius_point = np.reshape(min_radius_point, (2, 3))
+                                max_radius_point = np.reshape(max_radius_point, (2, 3))
+                                resmin, idxmin = self.segmentation(xyz[center_frustum], min_radius_point,
+                                                                   center_frustum)
+                                resmax, idxmax = self.segmentation(xyz[center_frustum], max_radius_point,
+                                                                   center_frustum)
                                 # If center box has 2 Object? erase Not Interest Object
-                                if len(idxmin)!=len(center_frustum):
-                                    if len(idxmin)<len(idxmax):
-                                        center_frustum=np.array(list(set(center_frustum)-set(idxmin)))
-                                    elif len(idxmin)>len(idxmax):
-                                        center_frustum=np.array(list(set(center_frustum)-set(idxmax)))
+                                if len(idxmin) != len(center_frustum):
+                                    if len(idxmin) < len(idxmax):
+                                        center_frustum = np.array(list(set(center_frustum) - set(idxmin)))
+                                    elif len(idxmin) > len(idxmax):
+                                        center_frustum = np.array(list(set(center_frustum) - set(idxmax)))
                                     else:
-                                        center_frustum=np.array(list(set(idxmax)))
-                                elif len(idxmax)!=len(center_frustum):
-                                    if len(idxmin)<len(idxmax):
-                                        center_frustum=np.array(list(set(center_frustum)-set(idxmin)))
-                                    elif len(idxmin)>len(idxmax):
-                                        center_frustum=np.array(list(set(center_frustum)-set(idxmax)))
+                                        center_frustum = np.array(list(set(idxmax)))
+                                elif len(idxmax) != len(center_frustum):
+                                    if len(idxmin) < len(idxmax):
+                                        center_frustum = np.array(list(set(center_frustum) - set(idxmin)))
+                                    elif len(idxmin) > len(idxmax):
+                                        center_frustum = np.array(list(set(center_frustum) - set(idxmax)))
                                     else:
-                                        center_frustum=np.array(list(set(idxmax)))
-                            if len(xyz[center_frustum])!=0:
+                                        center_frustum = np.array(list(set(idxmax)))
+                            if len(xyz[center_frustum]) != 0:
                                 projected_point["centroid"] = xyz[center_frustum]
                                 projected_point["centroid_idx"] = center_frustum
-                            else: # Center Box is Empty
+                            else:  # Center Box is Empty
                                 projected_point["centroid"] = None
                                 projected_point["centroid_idx"] = None
-                        else: # frustum is Empty
+                        else:  # frustum is Empty
                             projected_point["centroid"] = None
                             projected_point["centroid_idx"] = None
-                   
-                        
+
                         frustums.append(projected_point)
         return frustums
- 
-   
-    def box_is_in_plane(self,annos):
+
+    def box_is_in_plane(self, annos):
         '''
             DO:  3D box ->2D Image
             INPUT: PV-RCNN 3D Boxes Oneframe
             OUTPUT: camera_num, pixel
         '''
-       
-        cp_box=annos["boxes_lidar"].copy()
-        box_center=cp_box[:,:3].copy()
-        box_plane=self.pointcloud2image(box_center)
-        res=[]
+
+        cp_box = annos["boxes_lidar"].copy()
+        box_center = cp_box[:, :3].copy()
+        box_plane = self.pointcloud2image(box_center)
+        res = []
         for camera_num in range(CAMMERA_NUM):
-            plane=[]
-            maked_2dbox_with_label={}
-            box_idx=np.unique(box_plane[camera_num].flatten("C"))
+            plane = []
+            maked_2dbox_with_label = {}
+            box_idx = np.unique(box_plane[camera_num].flatten("C"))
             idx = np.where(box_idx == -1)
             if idx is not None:
                 box_idx = np.delete(box_idx, idx)
-            corners_3d=boxes_to_corners_3d(cp_box[box_idx,:])
-            for i,box in enumerate(corners_3d):
-                box2d=self.make_2d_box(camera_num,box)
-                maked_2dbox_with_label["3d_box"]=box
-                maked_2dbox_with_label["box"]=box2d
-                maked_2dbox_with_label["label"]=annos["name"][box_idx[i]]
-                maked_2dbox_with_label["PVRCNN_Formed_Box"]=annos["boxes_lidar"][box_idx[i]]
+            corners_3d = boxes_to_corners_3d(cp_box[box_idx, :])
+            for i, box in enumerate(corners_3d):
+                box2d = self.make_2d_box(camera_num, box)
+                maked_2dbox_with_label["3d_box"] = box
+                maked_2dbox_with_label["box"] = box2d
+                maked_2dbox_with_label["label"] = annos["name"][box_idx[i]]
+                maked_2dbox_with_label["PVRCNN_Formed_Box"] = annos["boxes_lidar"][box_idx[i]]
                 plane.append(maked_2dbox_with_label.copy())
-        
+
             res.append(plane)
         return res
-    
-    def make_2d_box(self,camera_num,box):
+
+    def make_2d_box(self, camera_num, box):
         '''
             DO: 3D BOX -> 2D BOX for Each Camera Image
             INPUT: camera_num = number of Camera
             OUTPUT: box=3d box Result PV-RCNN
         '''
-        cp_box=box.copy()
-        one=np.ones((len(box),1))
-        cp_box=np.concatenate((cp_box,one),axis=1)
+        cp_box = box.copy()
+        one = np.ones((len(box), 1))
+        cp_box = np.concatenate((cp_box, one), axis=1)
         to_plane = np.matmul(np.linalg.inv(self.current_extrinsics[camera_num]), cp_box.T).T
-        change_coordinate =np.concatenate(([-1*to_plane[:,1].T],[-1*to_plane[:,2].T],[to_plane[:,0].T]),axis=0)
-        to_image = np.matmul(self.current_intrinsics[camera_num],change_coordinate).T
-        to_image = to_image/to_image[:, 2, None]
-        box=[np.min(to_image[:,0]),np.min(to_image[:,1]),np.max(to_image[:,0]),np.max(to_image[:,1])]
+        change_coordinate = np.concatenate(([-1 * to_plane[:, 1].T], [-1 * to_plane[:, 2].T], [to_plane[:, 0].T]),
+                                           axis=0)
+        to_image = np.matmul(self.current_intrinsics[camera_num], change_coordinate).T
+        to_image = to_image / to_image[:, 2, None]
+        box = [np.min(to_image[:, 0]), np.min(to_image[:, 1]), np.max(to_image[:, 0]), np.max(to_image[:, 1])]
         return box
 
-    def is_box_in_frustum(self,frustum_per_onescene,boxes,xyz,pvrcnn_box):
+    def is_box_in_frustum(self, frustum_per_onescene, boxes, xyz, pvrcnn_box):
         '''
             DO: generated 2d Box(3D_box -> 2d box) is in frustum?
             INPUT: frustum_per_onescene = Frustum for One Frame
@@ -383,67 +399,70 @@ class Fusion(object):
                         ["is_generated"] = Box is Generated?
 
         '''
-        cp_xyz=xyz.copy()
-        for i,frustum in enumerate(frustum_per_onescene):
-            found=False
+        cp_xyz = xyz.copy()
+        for i, frustum in enumerate(frustum_per_onescene):
+            found = False
             for box_in_camera_num in boxes:
-                for  box in box_in_camera_num:
-                    if frustum["label"]==box["label"]:
-                        iou=iou2d(box["box"],frustum["2d_box"])
-                        if iou>0.4:
-                        
+                for box in box_in_camera_num:
+                    if frustum["label"] == box["label"]:
+                        iou = iou2d(box["box"], frustum["2d_box"])
+                        if iou > 0.4:
                             # print(iou)
-                            frustum_per_onescene[i]["PVRCNN_Formed_Box"]=box["PVRCNN_Formed_Box"]
-                            frustum_per_onescene[i]["3d_box"]=box["3d_box"]
-                            frustum_per_onescene[i]["is_generated"]=False
-                            found=True
+                            frustum_per_onescene[i]["PVRCNN_Formed_Box"] = box["PVRCNN_Formed_Box"]
+                            frustum_per_onescene[i]["3d_box"] = box["3d_box"]
+                            frustum_per_onescene[i]["is_generated"] = False
+                            found = True
                             break
             if found is False:
                 if frustum["centroid"] is not None:
-                    
-                    frustum_per_onescene[i]["3d_box"],frustum_per_onescene[i]["seg"],frustum_per_onescene[i]["PVRCNN_Formed_Box"]=self.make_3d_box(cp_xyz[frustum["large_frustum"]],frustum["centroid"],frustum["large_frustum"])
-                    matched_box=self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"],pvrcnn_box)
-                    if matched_box is not None:
-                        frustum_per_onescene[i]["is_generated"]=False
-                        frustum_per_onescene[i]["PVRCNN_Formed_Box"]=matched_box
-                        frustum_per_onescene[i]["3d_box"]=boxes_to_corners_3d(matched_box)
-                    else:
-                        frustum_per_onescene[i]["is_generated"]=True
-                else:
-                    frustum_per_onescene[i]["is_generated"]=False
-                    frustum_per_onescene[i]["3d_box"]=None
-        return frustum_per_onescene
-    
-    @staticmethod
-    def find_max(gt_idx,iou_mat):
-        return gt_idx[np.argmax(iou_mat[0,gt_idx])]
 
-    def is_box_in_box(self,generate_Box,PVRCNN_boxes):
-        generate_Box=np.vstack((generate_Box,np.zeros(7)))
-        mat=boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(),torch.tensor(PVRCNN_boxes).cuda())
-        mat=mat.cpu().numpy()
-        match=np.where(mat[0]>0.0)[0]
-        if len(match)>1:
-            match=np.array([self.find_max(match,mat)])
-        if len(match)!=0:
-            if mat[0,int(match)]>0.2:
+                    frustum_per_onescene[i]["3d_box"], frustum_per_onescene[i]["seg"], frustum_per_onescene[i][
+                        "PVRCNN_Formed_Box"] = self.make_3d_box(cp_xyz[frustum["large_frustum"]], frustum["centroid"],
+                                                                frustum["large_frustum"])
+                    matched_box = self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"], pvrcnn_box)
+                    if matched_box is not None:
+                        frustum_per_onescene[i]["is_generated"] = False
+                        frustum_per_onescene[i]["PVRCNN_Formed_Box"] = matched_box
+                        frustum_per_onescene[i]["3d_box"] = boxes_to_corners_3d(matched_box)
+                    else:
+                        frustum_per_onescene[i]["is_generated"] = True
+                else:
+                    frustum_per_onescene[i]["is_generated"] = False
+                    frustum_per_onescene[i]["3d_box"] = None
+        return frustum_per_onescene
+
+    @staticmethod
+    def find_max(gt_idx, iou_mat):
+        return gt_idx[np.argmax(iou_mat[0, gt_idx])]
+
+    def is_box_in_box(self, generate_Box, PVRCNN_boxes):
+        generate_Box = np.vstack((generate_Box, np.zeros(7)))
+        mat = boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(), torch.tensor(PVRCNN_boxes).cuda())
+        mat = mat.cpu().numpy()
+        match = np.where(mat[0] > 0.0)[0]
+        if len(match) > 1:
+            match = np.array([self.find_max(match, mat)])
+        if len(match) != 0:
+            if mat[0, int(match)] > 0.2:
                 return PVRCNN_boxes[match]
             else:
-                dx=PVRCNN_boxes[match][0,3]
-                dy=PVRCNN_boxes[match][0,4]
-                dz=PVRCNN_boxes[match][0,5]
-        
-                box3d_gen=boxes_to_corners_3d(generate_Box)
-                match_ceter_to_corner=((box3d_gen[0][:,0]-PVRCNN_boxes[match][0][0])**2+(box3d_gen[0][:,1]-PVRCNN_boxes[match][0][1])**2+(box3d_gen[0][:,2]-PVRCNN_boxes[match][0][2])**2)**0.5
-                box_radius=((dx/2)**2+(dy/2)**2+(dz/2)**2)**0.5
-                if(len(np.where(match_ceter_to_corner<box_radius)[0]))>=6:   
-                    return PVRCNN_boxes[match]       
+                dx = PVRCNN_boxes[match][0, 3]
+                dy = PVRCNN_boxes[match][0, 4]
+                dz = PVRCNN_boxes[match][0, 5]
+
+                box3d_gen = boxes_to_corners_3d(generate_Box)
+                match_ceter_to_corner = ((box3d_gen[0][:, 0] - PVRCNN_boxes[match][0][0]) ** 2 + (
+                            box3d_gen[0][:, 1] - PVRCNN_boxes[match][0][1]) ** 2 + (
+                                                     box3d_gen[0][:, 2] - PVRCNN_boxes[match][0][2]) ** 2) ** 0.5
+                box_radius = ((dx / 2) ** 2 + (dy / 2) ** 2 + (dz / 2) ** 2) ** 0.5
+                if (len(np.where(match_ceter_to_corner < box_radius)[0])) >= 6:
+                    return PVRCNN_boxes[match]
                 else:
                     return None
         else:
             return None
 
-    def make_3d_box(self,frustum_point,centroid_point,frustum_idx):
+    def make_3d_box(self, frustum_point, centroid_point, frustum_idx):
         """
             DO: Make 3D box from Segmentation Result
             INPUT: Frustum_point = 10% Large Frustum point [x,y,z] 
@@ -462,60 +481,64 @@ class Fusion(object):
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
 
         """
-        seg_cluster,seg_idx=self.segmentation(frustum_point,centroid_point,frustum_idx,max_radius=0.03)
-        
-        #*********************************************************************************************       
+        seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.03)
+
+        # *********************************************************************************************
         # PCA
-    
+
         # Calculate Center Point
-     
+
         # center_x=np.mean(seg_cluster[:][:,0])
         # center_y=np.mean(seg_cluster[:][:,1])
-        center_x=(np.max(seg_cluster[:][:,0])+np.min(seg_cluster[:][:,0]))/2
-        center_y=(np.max(seg_cluster[:][:,1])+np.min(seg_cluster[:][:,1]))/2
-        center_z=(np.max(seg_cluster[:][:,2])+np.min(seg_cluster[:][:,2]))/2
-        
+        center_x = (np.max(seg_cluster[:][:, 0]) + np.min(seg_cluster[:][:, 0])) / 2
+        center_y = (np.max(seg_cluster[:][:, 1]) + np.min(seg_cluster[:][:, 1])) / 2
+        center_z = (np.max(seg_cluster[:][:, 2]) + np.min(seg_cluster[:][:, 2])) / 2
+
         # Calculate  Covirence Matrix
-        M20=np.dot((seg_cluster[:,0]-center_x).T,(seg_cluster[:,0]-center_x))
-        M11=np.dot((seg_cluster[:,0]-center_x).T,(seg_cluster[:,1]-center_y))
-        M02=np.dot((seg_cluster[:,1]-center_y).T,(seg_cluster[:,1]-center_y))
-        M=np.array([[M20,M11],[M11,M02]])
+        M20 = np.dot((seg_cluster[:, 0] - center_x).T, (seg_cluster[:, 0] - center_x))
+        M11 = np.dot((seg_cluster[:, 0] - center_x).T, (seg_cluster[:, 1] - center_y))
+        M02 = np.dot((seg_cluster[:, 1] - center_y).T, (seg_cluster[:, 1] - center_y))
+        M = np.array([[M20, M11], [M11, M02]])
         # Diagonalization
-        w,v=np.linalg.eig(M)
-        
+        w, v = np.linalg.eig(M)
+
         # Check Principal Axis
-        if w[0]>w[1]:
-            axis=v[0]
+        if w[0] > w[1]:
+            axis = v[0]
         else:
-            axis=v[1]
-        #*********************************************************************************************  
+            axis = v[1]
+        # *********************************************************************************************
         # Calcluate Heading Angle
-        heading =math.atan2(axis[1],axis[0])
-        
+        heading = math.atan2(axis[1], axis[0])
+
         # Make Rotational Matrix
-        cos_theta=math.cos(heading)
-        sin_theta=math.sin(heading)
-        mat_T=np.array([[cos_theta,sin_theta,0],[-sin_theta,cos_theta,0],[0,0,1]])
-        
+        cos_theta = math.cos(heading)
+        sin_theta = math.sin(heading)
+        mat_T = np.array([[cos_theta, sin_theta, 0], [-sin_theta, cos_theta, 0], [0, 0, 1]])
+
         # Calculate Non Rotated Point
-        rot_center=np.matmul(mat_T,np.array([center_x,center_y,center_z]).T)
-        rot_points=np.matmul(mat_T,seg_cluster.T).T
+        rot_center = np.matmul(mat_T, np.array([center_x, center_y, center_z]).T)
+        rot_points = np.matmul(mat_T, seg_cluster.T).T
 
         # Calculate Length of X,Y,Z
-        dx=np.max(rot_points[:,0]-rot_center[0])-np.min(rot_points[:,0]-rot_center[0])
-        dy=np.max(rot_points[:,1]-rot_center[1])-np.min(rot_points[:,1]-rot_center[1])
-        dz=np.max(seg_cluster[:][:,2])-np.min(seg_cluster[:][:,2])
+        dx = np.max(rot_points[:, 0] - rot_center[0]) - np.min(rot_points[:, 0] - rot_center[0])
+        dy = np.max(rot_points[:, 1] - rot_center[1]) - np.min(rot_points[:, 1] - rot_center[1])
+        dz = np.max(seg_cluster[:][:, 2]) - np.min(seg_cluster[:][:, 2])
 
         # Result Form PV-RCNN
-        res=np.array([center_x,center_y,center_z,dx,dy,dz,heading])
+        res = np.array([center_x, center_y, center_z, dx, dy, dz, heading])
 
         # Result Form Box
-        to_box_mat=np.array([[cos_theta,-sin_theta,0,center_x],[sin_theta,cos_theta,0,center_y],[0,0,1,center_z]])
-        template=np.array([[dx/2,dy/2, -dz/2,1], [dx/2, -dy/2, -dz/2,1], [-dx/2, -dy/2, -dz/2,1], [-dx/2, dy/2, -dz/2,1],[dx/2,dy/2,dz/2,1], [dx/2, -dy/2, dz/2,1], [-dx/2, -dy/2, dz/2,1], [-dx/2, dy/2, dz/2,1]])
-        box=np.matmul(to_box_mat,template.T).T
-        return box ,seg_cluster ,res
+        to_box_mat = np.array(
+            [[cos_theta, -sin_theta, 0, center_x], [sin_theta, cos_theta, 0, center_y], [0, 0, 1, center_z]])
+        template = np.array(
+            [[dx / 2, dy / 2, -dz / 2, 1], [dx / 2, -dy / 2, -dz / 2, 1], [-dx / 2, -dy / 2, -dz / 2, 1],
+             [-dx / 2, dy / 2, -dz / 2, 1], [dx / 2, dy / 2, dz / 2, 1], [dx / 2, -dy / 2, dz / 2, 1],
+             [-dx / 2, -dy / 2, dz / 2, 1], [-dx / 2, dy / 2, dz / 2, 1]])
+        box = np.matmul(to_box_mat, template.T).T
+        return box, seg_cluster, res
 
-    def segmentation(self,frustum_point,centroid_point,frustum_idx,max_radius=0.03):
+    def segmentation(self, frustum_point, centroid_point, frustum_idx, max_radius=0.03):
         '''
             DO: Segmentation (make Cluster)
             INPUT: frustum_point= 10% Large Frustum (N,3)[x,y,z]
@@ -526,16 +549,17 @@ class Fusion(object):
         '''
         # INIT
         points = Queue()
-        cp_frustum_point=frustum_point.copy()
-        cp_frustum_idx=frustum_idx.copy()
-        cluster=[]
+        cp_frustum_point = frustum_point.copy()
+        cp_frustum_idx = frustum_idx.copy()
+        cluster = []
         for center_point in centroid_point:
             points.put(center_point)
             cluster.append(center_point)
-        idx=[]
+        idx = []
         while points.empty() != True:
             leaf = points.get()
-            radius = np.array((cp_frustum_point[:, 0]-leaf[0])**2+(cp_frustum_point[:, 1]-leaf[1])**2+(cp_frustum_point[:, 2]-leaf[2])**2)
+            radius = np.array((cp_frustum_point[:, 0] - leaf[0]) ** 2 + (cp_frustum_point[:, 1] - leaf[1]) ** 2 + (
+                        cp_frustum_point[:, 2] - leaf[2]) ** 2)
             cluster_idx = np.where(radius < max_radius)
             idx.extend(cp_frustum_idx[cluster_idx])
             next_cp_frustum_idx = np.delete(cp_frustum_idx, cluster_idx[0])
@@ -545,7 +569,7 @@ class Fusion(object):
                 points.put(cp_frustum_point[i])
             cp_frustum_idx = next_cp_frustum_idx
             cp_frustum_point = next_cp_frustum_point
-        cluster=np.array(cluster)
+        cluster = np.array(cluster)
         return cluster, idx
 
     # #Test Code
@@ -554,7 +578,7 @@ class Fusion(object):
     #         annos2d = pickle.load(f)
     #     self.current_intrinsics = annos2d[0]["intrinsic"]
     #     self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
-        
+
     # def doitwell(self,planes):
     #     frustums=[]
     #     for plane in planes:
@@ -564,6 +588,7 @@ class Fusion(object):
     #             frustum = np.delete(frustum, idx)
     #         frustums.append(frustum)
     #     return frustums
+
 
 if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"

@@ -19,6 +19,7 @@ from easydict import EasyDict
 
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 
+
 def cocol2waymo(label):
     if label == 1:
         return WAYMO_CLASSES[2]
@@ -26,9 +27,9 @@ def cocol2waymo(label):
         return WAYMO_CLASSES[1]
     elif label in [2, 4]:
         return WAYMO_CLASSES[4]
-    elif label in [10,13]:
+    elif label in [10, 13]:
         return WAYMO_CLASSES[3]
-    elif label not in [1,2,3,4,5,6,7,8,9,10,13]:
+    elif label not in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13]:
         return WAYMO_CLASSES[0]
 
 
@@ -140,10 +141,10 @@ class ModelManager(object):
         start_time = time.time()
         for i, batch_dict in enumerate(self.test_loader):
             idx = int(batch_dict["frame_id"][0][-3:])
-         
+
             sequence_id = batch_dict["frame_id"][0][:-4]
             load_data_to_gpu(batch_dict)
-           
+
             if sequence_id != self.sequence:
                 self.sequence = sequence_id
                 self.imgloaded = Waymo2DLoader(self.root, self.sequence)
@@ -164,7 +165,7 @@ class ModelManager(object):
             img_pred["imgs"] = imgs
             img_pred["anno"] = []
             img_pred["frame_id"] = batch_dict["frame_id"]
-            img_pred["image_id"]=[]
+            img_pred["image_id"] = []
             for i, img in enumerate(imgs):
                 img = transform(img).cuda()
                 pred_one_img = self.pred_2Dbox(img)  # 2d BOX anNOTATION. FOR 1 Image
@@ -194,17 +195,18 @@ class ModelManager(object):
         for i in list(pred[0]['labels'].cpu().numpy()):
             pred_class.append(cocol2waymo(i))
         pred[0]['labels'] = pred_class
-        pred[0]['boxes']=pred_boxes
+        pred[0]['boxes'] = pred_boxes
         return pred[0]
 
 
 if __name__ == "__main__":
     import pickle
+
     root = "./data/waymo/waymo_processed_data/"
     ckpt = "./checkpoints/checkpoint_epoch_30.pth"
     test = ModelManager(root, ckpt)
-    a,b=test.val()
-    with open( "anno3d.pkl", 'wb') as f:
-        pickle.dump(a,f)
-    with open("anno2d.pkl",'wb') as f:
-        pickle.dump(b,f)
+    a, b = test.val()
+    with open("anno3d.pkl", 'wb') as f:
+        pickle.dump(a, f)
+    with open("anno2d.pkl", 'wb') as f:
+        pickle.dump(b, f)

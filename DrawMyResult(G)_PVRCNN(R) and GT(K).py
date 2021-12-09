@@ -4,18 +4,19 @@ import open3d as o3d
 import torch
 from fusion import Fusion
 
+
 def make_3dBox(anno):
-    boxes=[]
-    lines=[[0,1],[1,2],[2,3],[0,3],[0,4],[4,5],[5,6],[6,7],[4,7],[1,5],[2,6],[3,7]]
-    corners3d=boxes_to_corners_3d(anno["boxes_lidar"])
+    boxes = []
+    lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5], [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
+    corners3d = boxes_to_corners_3d(anno["boxes_lidar"])
     for box in corners3d:
-        box3d=o3d.geometry.LineSet()
-        box3d.points= o3d.utility.Vector3dVector(box)
-        box3d.lines=o3d.utility.Vector2iVector(lines)
-        box3d.colors=o3d.utility.Vector3dVector(PVRCNNcolor)
+        box3d = o3d.geometry.LineSet()
+        box3d.points = o3d.utility.Vector3dVector(box)
+        box3d.lines = o3d.utility.Vector2iVector(lines)
+        box3d.colors = o3d.utility.Vector3dVector(PVRCNNcolor)
         boxes.append(box3d)
     return boxes
-    
+
 
 def check_numpy_to_torch(x):
     if isinstance(x, np.ndarray):
@@ -39,7 +40,7 @@ def rotate_points_along_z(points, angle):
     zeros = angle.new_zeros(points.shape[0])
     ones = angle.new_ones(points.shape[0])
     rot_matrix = torch.stack((
-        cosa,  sina, zeros,
+        cosa, sina, zeros,
         -sina, cosa, zeros,
         zeros, zeros, ones
     ), dim=1).view(-1, 3, 3).float()
@@ -77,101 +78,100 @@ def boxes_to_corners_3d(boxes3d):
 
 
 if __name__ == "__main__":
-    frame_idx=1
-    dirpath="./data/waymo/waymo_infos_val.pkl"
-    lines=[[0,1],[1,2],[2,3],[0,3],[0,4],[4,5],[5,6],[6,7],[4,7],[1,5],[2,6],[3,7]]
-    fusion_color=[[0, 1, 0] for i in range(len(lines))]
-    PVRCNNcolor=[[1, 0, 0] for i in range(len(lines))]
+    frame_idx = 1
+    dirpath = "./data/waymo/waymo_infos_val.pkl"
+    lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5], [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
+    fusion_color = [[0, 1, 0] for i in range(len(lines))]
+    PVRCNNcolor = [[1, 0, 0] for i in range(len(lines))]
     ## GT BOX######################
-    with open(dirpath,"rb") as f:
-        gt_data=pickle.load(f)
-    print(gt_data[5*frame_idx]["frame_id"])
-    gt_boxes=gt_data[5*frame_idx]["annos"]["gt_boxes_lidar"]
-    groudTruth_boxes=[]
-    corners3d=boxes_to_corners_3d(gt_boxes)
+    with open(dirpath, "rb") as f:
+        gt_data = pickle.load(f)
+    print(gt_data[5 * frame_idx]["frame_id"])
+    gt_boxes = gt_data[5 * frame_idx]["annos"]["gt_boxes_lidar"]
+    groudTruth_boxes = []
+    corners3d = boxes_to_corners_3d(gt_boxes)
     for box in corners3d:
-        box3d=o3d.geometry.LineSet()
-        box3d.points= o3d.utility.Vector3dVector(box)
-        box3d.lines=o3d.utility.Vector2iVector(lines)
+        box3d = o3d.geometry.LineSet()
+        box3d.points = o3d.utility.Vector3dVector(box)
+        box3d.lines = o3d.utility.Vector2iVector(lines)
         groudTruth_boxes.append(box3d)
     ############################################
 
-    
-    with open("anno3d.pkl",'rb')as f:
-        annos3d=pickle.load(f)
-    with open("frustum.pkl",'rb')as f:
-        frustum=pickle.load(f)
-    
-    lidar_idx=str(5*frame_idx).zfill(4)
+    with open("anno3d.pkl", 'rb') as f:
+        annos3d = pickle.load(f)
+    with open("frustum.pkl", 'rb') as f:
+        frustum = pickle.load(f)
+
+    lidar_idx = str(5 * frame_idx).zfill(4)
     print(lidar_idx)
-    xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/"+lidar_idx+".npy")
-    xyz=xyz[:,:3]
-  
-    segs=[]
-    frustums=[]
+    xyz = np.load(
+        "/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/" + lidar_idx + ".npy")
+    xyz = xyz[:, :3]
+
+    segs = []
+    frustums = []
     print(annos3d[frame_idx]["frame_id"])
     for f in frustum[frame_idx]["frustum"]:
         if f["is_generated"] is True:
             segs.append(f)
-    pcds=[]
-    vecs=[]
-    boxes=[]
-  
+    pcds = []
+    vecs = []
+    boxes = []
+
     for seg in segs:
-        if seg["label"]=='Pedestrian':
-            box3d=o3d.geometry.LineSet()
-            box3d.points= o3d.utility.Vector3dVector(seg["3d_box"])
-            box3d.lines=o3d.utility.Vector2iVector(lines)
-            box3d.colors=o3d.utility.Vector3dVector(fusion_color)
+        if seg["label"] == 'Pedestrian':
+            box3d = o3d.geometry.LineSet()
+            box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
+            box3d.lines = o3d.utility.Vector2iVector(lines)
+            box3d.colors = o3d.utility.Vector3dVector(fusion_color)
             boxes.append(box3d)
             # pcd=o3d.geometry.PointCloud()
             # pcd.points=o3d.utility.Vector3dVector(seg["seg"])
             # pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
             # pcds.append(pcd)
             # vecs=vecs+list(seg["seg"])
-        if seg["label"]=='Vehicle':
-            box3d=o3d.geometry.LineSet()
-            box3d.points= o3d.utility.Vector3dVector(seg["3d_box"])
-            box3d.lines=o3d.utility.Vector2iVector(lines)
-            box3d.colors=o3d.utility.Vector3dVector(fusion_color)
+        if seg["label"] == 'Vehicle':
+            box3d = o3d.geometry.LineSet()
+            box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
+            box3d.lines = o3d.utility.Vector2iVector(lines)
+            box3d.colors = o3d.utility.Vector3dVector(fusion_color)
             boxes.append(box3d)
             # pcd=o3d.geometry.PointCloud()
             # pcd.points=o3d.utility.Vector3dVector(seg["seg"])
             # pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
             # pcds.append(pcd)
             # vecs=vecs+list(seg["seg"])
-        if seg["label"]=='Cyclist':
-            box3d=o3d.geometry.LineSet()
-            box3d.points= o3d.utility.Vector3dVector(seg["3d_box"])
-            box3d.lines=o3d.utility.Vector2iVector(lines)
-            box3d.colors=o3d.utility.Vector3dVector(fusion_color)
+        if seg["label"] == 'Cyclist':
+            box3d = o3d.geometry.LineSet()
+            box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
+            box3d.lines = o3d.utility.Vector2iVector(lines)
+            box3d.colors = o3d.utility.Vector3dVector(fusion_color)
             boxes.append(box3d)
             # pcd=o3d.geometry.PointCloud()
             # pcd.points=o3d.utility.Vector3dVector(seg["seg"])
             # pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
             # pcds.append(pcd)
             # vecs=vecs+list(seg["seg"])
-        elif seg["label"]=='Sign':
-            box3d=o3d.geometry.LineSet()
-            
-            #box=fu.make_3d_box(seg["seg"])
-            box3d.points= o3d.utility.Vector3dVector(seg["3d_box"])
-            box3d.lines=o3d.utility.Vector2iVector(lines)
-            box3d.colors=o3d.utility.Vector3dVector(fusion_color)
+        elif seg["label"] == 'Sign':
+            box3d = o3d.geometry.LineSet()
+
+            # box=fu.make_3d_box(seg["seg"])
+            box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
+            box3d.lines = o3d.utility.Vector2iVector(lines)
+            box3d.colors = o3d.utility.Vector3dVector(fusion_color)
             boxes.append(box3d)
             # pcd=o3d.geometry.PointCloud()
             # pcd.points=o3d.utility.Vector3dVector(seg["seg"])
             # pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
             # pcds.append(pcd)
             # vecs=vecs+list(seg["seg"])  
-    box=make_3dBox(annos3d[frame_idx])
-    cp_xyz= xyz.copy()
+    box = make_3dBox(annos3d[frame_idx])
+    cp_xyz = xyz.copy()
 
-  
-    all=o3d.geometry.PointCloud()
-    all.points=o3d.utility.Vector3dVector(cp_xyz)
-    all.paint_uniform_color([0,0,1])
-    vis=o3d.visualization.Visualizer()
+    all = o3d.geometry.PointCloud()
+    all.points = o3d.utility.Vector3dVector(cp_xyz)
+    all.paint_uniform_color([0, 0, 1])
+    vis = o3d.visualization.Visualizer()
     vis.create_window()
     for b in groudTruth_boxes:
         vis.add_geometry(b)
