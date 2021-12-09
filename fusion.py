@@ -426,7 +426,7 @@ class Fusion(object):
         if len(match)>1:
             match=np.array([self.find_max(match,mat)])
         if len(match)!=0:
-            if mat[0,int(match)]>0.3:
+            if mat[0,int(match)]>0.2:
                 return PVRCNN_boxes[match]
             else:
                 dx=PVRCNN_boxes[match][0,3]
