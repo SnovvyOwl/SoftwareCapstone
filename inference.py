@@ -92,20 +92,20 @@ class Inference(object):
                     iou_mat=iou_mat.cpu().numpy()
                     iou_mat=np.delete(iou_mat,sign_idx,axis=0)
                     gt_name=np.delete(gt_frame["annos"]["name"],sign_idx,axis=0)
-                    self.match_correction(gt_name,frame["name"],iou_mat,frame["score"])
+                    self.PVRCNN_correction(gt_name,frame["name"],iou_mat,frame["score"])
                 
                     break
-        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print("**************************************************************")
         print("MY RESULT")        
         print("PEDESTRIAN: {0} ".format(self.pedestrianAP.get_AP()))
         print("VEHICLE: {0} ".format(self.vehicleAP.get_AP()))
         print("CYCLIST: {0} ".format(self.cyclistAP.get_AP()))
-        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print("**************************************************************")
         print("PVRCNN RESULT")
         print("PEDESTRIAN: {0} ".format(self.PVRCNN_pedestrianAP.get_AP()))
         print("VEHICLE: {0} ".format(self.PVRCNN_vehicleAP.get_AP()))
         print("CYCLIST: {0} ".format(self.PVRCNN_cyclistAP.get_AP()))
-        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print("**************************************************************")
 
     def PVRCNN_correction(self,_gt_name,_frame_name,_iou_mat,score,ped_threshold=0.5,vec_threshold=0.55,cyc_threshold=0.5):
         iou_mat=_iou_mat.T
@@ -113,7 +113,7 @@ class Inference(object):
             if name =="Pedestrian":
                 gt_idx=np.where(iou_mat[i]>0)[0]
                 if len(gt_idx)==0:
-                    self.pedestrianAP.add(score[i],False,0)
+                    self.PVRCNN_pedestrianAP.add(score[i],False,0)
                 else:
                     if len(gt_idx)>1:
                         gt_idx=self.find_max(gt_idx,i,iou_mat)
@@ -127,7 +127,7 @@ class Inference(object):
             elif name =="Vehicle":
                 gt_idx=np.where(iou_mat[i]>0)[0]
                 if len(gt_idx)==0:
-                    self.vehicleAP.add(score[i],False,0)
+                    self.PVRCNN_vehicleAP.add(score[i],False,0)
                 else:
                     if len(gt_idx)>1:
                         gt_idx=self.find_max(gt_idx,i,iou_mat)
@@ -141,7 +141,7 @@ class Inference(object):
             elif name =="Cyclist":
                 gt_idx=np.where(iou_mat[i]>0)[0]
                 if len(gt_idx)==0:
-                    self.cyclistAP.add(score[i],False,0)
+                    self.PVRCNN_cyclistAP.add(score[i],False,0)
                 else:
                     if len(gt_idx)>1:
                         gt_idx=self.find_max(gt_idx,i,iou_mat)
@@ -151,11 +151,11 @@ class Inference(object):
                         found=bool(iou_mat[i,gt_idx]>cyc_threshold)
                     else:
                         found=False
-                        match=False
-                    self.cyclistAP.add(score[i],found,iou_mat[i,gt_idx],match)  
-        self.pedestrianAP.frame_add(len(np.where(_gt_name=="Pedestrian")[0]),len(np.where(_frame_name=="Pedestrian")[0]))
-        self.vehicleAP.frame_add(len(np.where(_gt_name=="Vehicle")[0]),len(np.where(_frame_name=="Vehicle")[0]))
-        self.cyclistAP.frame_add(len(np.where(_gt_name=="Cyclist")[0]),len(np.where(_frame_name=="Cyclist")[0]))
+            
+                    self.PVRCNN_cyclistAP.add(score[i],found,iou_mat[i,gt_idx])  
+        self.PVRCNN_pedestrianAP.frame_add(len(np.where(_gt_name=="Pedestrian")[0]),len(np.where(_frame_name=="Pedestrian")[0]))
+        self.PVRCNN_vehicleAP.frame_add(len(np.where(_gt_name=="Vehicle")[0]),len(np.where(_frame_name=="Vehicle")[0]))
+        self.PVRCNN_cyclistAP.frame_add(len(np.where(_gt_name=="Cyclist")[0]),len(np.where(_frame_name=="Cyclist")[0]))
 
     def match_correction(self,gt_name,frame_name,_iou_mat,score,ped_threshold=0.5,vec_threshold=0.55,cyc_threshold=0.5):
         iou_mat=_iou_mat.T
@@ -174,7 +174,7 @@ class Inference(object):
                 
                     else:
                         found=False
-                        match=False
+                
                     self.pedestrianAP.add(score[i],found,iou_mat[i,gt_idx])
             elif name =="Vehicle":
                 gt_idx=np.where(iou_mat[i]>0)[0]
@@ -190,7 +190,7 @@ class Inference(object):
                 
                     else:
                         found=False
-                        match=False
+                   
                     self.vehicleAP.add(score[i],found,iou_mat[i,gt_idx])
             elif name =="Cyclist":
                 gt_idx=np.where(iou_mat[i]>0)[0]
@@ -206,8 +206,8 @@ class Inference(object):
             
                     else:
                         found=False
-                        match=False
-                    self.cyclistAP.add(score[i],found,iou_mat[i,gt_idx],match)  
+                  
+                    self.cyclistAP.add(score[i],found,iou_mat[i,gt_idx])  
         self.pedestrianAP.frame_add(len(np.where(gt_name=="Pedestrian")[0]),len(np.where(frame_name=="Pedestrian")[0]))
         self.vehicleAP.frame_add(len(np.where(gt_name=="Vehicle")[0]),len(np.where(frame_name=="Vehicle")[0]))
         self.cyclistAP.frame_add(len(np.where(gt_name=="Cyclist")[0]),len(np.where(frame_name=="Cyclist")[0]))

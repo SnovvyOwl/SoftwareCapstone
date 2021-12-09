@@ -101,13 +101,16 @@ if __name__ == "__main__":
         annos3d=pickle.load(f)
     with open("frustum.pkl",'rb')as f:
         frustum=pickle.load(f)
-    xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/0005.npy")
+    
+    lidar_idx=str(5*frame_idx).zfill(4)
+    print(lidar_idx)
+    xyz=np.load("/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/"+lidar_idx+".npy")
     xyz=xyz[:,:3]
   
     segs=[]
     frustums=[]
     print(annos3d[frame_idx]["frame_id"])
-    for f in frustum[1]["frustum"]:
+    for f in frustum[frame_idx]["frustum"]:
         if f["is_generated"] is True:
             segs.append(f)
     pcds=[]
@@ -117,52 +120,50 @@ if __name__ == "__main__":
     for seg in segs:
         if seg["label"]=='Pedestrian':
             box3d=o3d.geometry.LineSet()
-            pcd=o3d.geometry.PointCloud()
-            pcd.points=o3d.utility.Vector3dVector(seg["seg"])
-            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
             box3d.points= o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines=o3d.utility.Vector2iVector(lines)
             box3d.colors=o3d.utility.Vector3dVector(fusion_color)
             boxes.append(box3d)
-            pcds.append(pcd)
-            vecs=vecs+list(seg["seg"])
+            # pcd=o3d.geometry.PointCloud()
+            # pcd.points=o3d.utility.Vector3dVector(seg["seg"])
+            # pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
+            # pcds.append(pcd)
+            # vecs=vecs+list(seg["seg"])
         if seg["label"]=='Vehicle':
-    
             box3d=o3d.geometry.LineSet()
-            pcd=o3d.geometry.PointCloud()
-            pcd.points=o3d.utility.Vector3dVector(seg["seg"])
-            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
-            #box=fu.make_3d_box(seg["seg"])
             box3d.points= o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines=o3d.utility.Vector2iVector(lines)
             box3d.colors=o3d.utility.Vector3dVector(fusion_color)
             boxes.append(box3d)
-            pcds.append(pcd)
-            vecs=vecs+list(seg["seg"])
+            # pcd=o3d.geometry.PointCloud()
+            # pcd.points=o3d.utility.Vector3dVector(seg["seg"])
+            # pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
+            # pcds.append(pcd)
+            # vecs=vecs+list(seg["seg"])
         if seg["label"]=='Cyclist':
             box3d=o3d.geometry.LineSet()
-            pcd=o3d.geometry.PointCloud()
-            pcd.points=o3d.utility.Vector3dVector(seg["seg"])
-            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
-            #box=fu.make_3d_box(seg["seg"])
             box3d.points= o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines=o3d.utility.Vector2iVector(lines)
             box3d.colors=o3d.utility.Vector3dVector(fusion_color)
             boxes.append(box3d)
-            pcds.append(pcd)
-            vecs=vecs+list(seg["seg"])
+            # pcd=o3d.geometry.PointCloud()
+            # pcd.points=o3d.utility.Vector3dVector(seg["seg"])
+            # pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
+            # pcds.append(pcd)
+            # vecs=vecs+list(seg["seg"])
         elif seg["label"]=='Sign':
             box3d=o3d.geometry.LineSet()
-            pcd=o3d.geometry.PointCloud()
-            pcd.points=o3d.utility.Vector3dVector(seg["seg"])
-            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
+            
             #box=fu.make_3d_box(seg["seg"])
             box3d.points= o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines=o3d.utility.Vector2iVector(lines)
             box3d.colors=o3d.utility.Vector3dVector(fusion_color)
             boxes.append(box3d)
-            pcds.append(pcd)
-            vecs=vecs+list(seg["seg"])  
+            # pcd=o3d.geometry.PointCloud()
+            # pcd.points=o3d.utility.Vector3dVector(seg["seg"])
+            # pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
+            # pcds.append(pcd)
+            # vecs=vecs+list(seg["seg"])  
     box=make_3dBox(annos3d[frame_idx])
     cp_xyz= xyz.copy()
 
@@ -179,8 +180,8 @@ if __name__ == "__main__":
     for b in boxes:
         vis.add_geometry(b)
     vis.add_geometry(all)
-    for f in pcds:
-        vis.add_geometry(f)
+    # for f in pcds:
+    #     vis.add_geometry(f)
     vis.get_render_option().line_width = 100
     vis.update_renderer()
 
