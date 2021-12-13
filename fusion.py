@@ -284,22 +284,19 @@ class Fusion(object):
                             idx = np.where(center_frustum == -1)
                             if idx is not None:
                                 center_frustum = np.delete(center_frustum, idx)
+                            x_center_extend_L = ((box[2] - box[0]) * 0.2) / 2
+                            y_center_extend_L = ((box[3] - box[1]) * 0.2) / 2
+                            center_box_L = [x_center - x_center_extend_L, y_center - y_center_extend_L,
+                                          x_center + x_center_extend_L, y_center + y_center_extend_L]
+                            center_box_L = np.floor(center_box_L).astype(np.int)
+                            center_frustum_L = np.unique(point_planes[camera_num][center_box_L[0]:center_box_L[2],
+                                                       center_box_L[1]:center_box_L[3]].flatten("C"))
+                            idx = np.where(center_frustum_L == -1)
+                            if idx is not None:
+                                center_frustum_L = np.delete(center_frustum_L, idx)
                             if len(center_frustum) != 0:
                                 # divide part 
-                                in_center_box_point = xyz[center_frustum]
-                                radius = np.array(
-                                    (in_center_box_point[:, 0]) ** 2 + (in_center_box_point[:, 1]) ** 2 + (
-                                    in_center_box_point[:, 2]) ** 2)
-                                min_radius_point = in_center_box_point[np.argmin(radius)]
-                                max_radius_point = in_center_box_point[np.argmax(radius)]
-                                min_radius_point = np.concatenate((min_radius_point, np.array([0, 0, 0])), axis=0)
-                                max_radius_point = np.concatenate((max_radius_point, np.array([0, 0, 0])), axis=0)
-                                min_radius_point = np.reshape(min_radius_point, (2, 3))
-                                max_radius_point = np.reshape(max_radius_point, (2, 3))
-                                resmin, idxmin = self.segmentation(xyz[center_frustum], min_radius_point,
-                                                                   center_frustum)
-                                resmax, idxmax = self.segmentation(xyz[center_frustum], max_radius_point,
-                                                                   center_frustum)
+                                idxmin,idxmax=self.center_box_seg(xyz[center_frustum],center_frustum)
                                 # If center box has 2 Object? erase Not Interest Object
                                 if len(idxmin) != len(center_frustum):
                                     if len(idxmin) < len(idxmax):
@@ -307,14 +304,30 @@ class Fusion(object):
                                     elif len(idxmin) > len(idxmax):
                                         center_frustum = np.array(list(set(center_frustum) - set(idxmax)))
                                     else:
-                                        center_frustum = np.array(list(set(idxmax)))
+                                        idxmin,idxmax=self.center_box_seg( xyz[center_frustum_L],center_frustum_L)
+                                        if len(idxmin) != len(center_frustum_L):
+                                            if len(idxmin) < len(idxmax):
+                                                center_frustum = np.array(list(set(center_frustum_L) - set(idxmin)))
+                                            elif len(idxmin) > len(idxmax):
+                                                center_frustum = np.array(list(set(center_frustum_L) - set(idxmax)))
+                                            else:
+                                                center_frustum = np.array(list(set(idxmax)))
                                 elif len(idxmax) != len(center_frustum):
                                     if len(idxmin) < len(idxmax):
                                         center_frustum = np.array(list(set(center_frustum) - set(idxmin)))
                                     elif len(idxmin) > len(idxmax):
                                         center_frustum = np.array(list(set(center_frustum) - set(idxmax)))
                                     else:
-                                        center_frustum = np.array(list(set(idxmax)))
+                                        idxmin,idxmax=self.center_box_seg( xyz[center_frustum_L],center_frustum_L)
+                                        if len(idxmin) != len(center_frustum_L):
+                                            if len(idxmin) < len(idxmax):
+                                                center_frustum = np.array(list(set(center_frustum_L) - set(idxmin)))
+                                            elif len(idxmin) > len(idxmax):
+                                                center_frustum = np.array(list(set(center_frustum_L) - set(idxmax)))
+                                            else:
+                                                center_frustum = np.array(list(set(idxmax)))
+                                else:
+                                    pass
                             if len(xyz[center_frustum]) != 0:
                                 projected_point["centroid"] = xyz[center_frustum]
                                 projected_point["centroid_idx"] = center_frustum
@@ -327,6 +340,18 @@ class Fusion(object):
 
                         frustums.append(projected_point)
         return frustums
+
+    def center_box_seg(self,center_box_point,center_box_idx):  
+        radius = np.array((center_box_point[:, 0]) ** 2 + (center_box_point[:, 1]) ** 2 + (center_box_point[:, 2]) ** 2)
+        min_radius_point = center_box_point[np.argmin(radius)]
+        max_radius_point = center_box_point[np.argmax(radius)]
+        min_radius_point = np.concatenate((min_radius_point, np.array([0, 0, 0])), axis=0)
+        max_radius_point = np.concatenate((max_radius_point, np.array([0, 0, 0])), axis=0)
+        min_radius_point = np.reshape(min_radius_point, (2, 3))
+        max_radius_point = np.reshape(max_radius_point, (2, 3))
+        resmin, idxmin = self.segmentation(center_box_point, min_radius_point,center_box_idx,max_radius=0.03)
+        resmax, idxmax = self.segmentation(center_box_point, max_radius_point,center_box_idx,max_radius=0.03)
+        return idxmin,idxmax
 
     def box_is_in_plane(self, annos):
         '''
@@ -422,7 +447,7 @@ class Fusion(object):
                         frustum_per_onescene[i]["3d_box"]=gen_box
                         frustum_per_onescene[i]["seg"]=gen_seg
                         frustum_per_onescene[i]["PVRCNN_Formed_Box"]=gen_PVRCNNbox
-                        matched_box = self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"], pvrcnn_box)
+                        matched_box = self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"], pvrcnn_box,frustum_per_onescene[i]["label"])
                         if matched_box is not None:
                             frustum_per_onescene[i]["is_generated"] = False
                             frustum_per_onescene[i]["PVRCNN_Formed_Box"] = matched_box
@@ -442,16 +467,25 @@ class Fusion(object):
     def find_max(gt_idx, iou_mat):
         return gt_idx[np.argmax(iou_mat[0, gt_idx])]
 
-    def is_box_in_box(self, generate_Box, PVRCNN_boxes):
+    def is_box_in_box(self, generate_Box, PVRCNN_boxes,label):
+        # if label=="Vehicle":
+        #     min_z=generate_Box[2]-(generate_Box[5]/2)
+        #     if min_z>0.1:
+        #         return None
+        #     else:
+        #         pass
+        # else:
+        #     pass
         generate_Box = np.vstack((generate_Box, np.zeros(7)))
         mat = boxes_inbox_gpu(torch.tensor(generate_Box.astype("float32")).cuda(), torch.tensor(PVRCNN_boxes).cuda())
         # mat = boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(), torch.tensor(PVRCNN_boxes).cuda())
         mat = mat.cpu().numpy()
         match = np.where(mat[0] > 0.0)[0]
+        
         if len(match) > 1:
             match = np.array([self.find_max(match, mat)])
         if len(match) != 0:
-            if mat[0, int(match)] > 0.6:
+            if mat[0, int(match)] > 0.7:
                 return PVRCNN_boxes[match]
             else:
           
@@ -490,20 +524,20 @@ class Fusion(object):
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
 
         """
-        seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.03)
+        seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.01)
 
         # *********************************************************************************************
         # PCA
 
         # Calculate Center Point
 
-        center_x = (np.max(centroid_point[:][:, 0]) + np.min(centroid_point[:][:, 0])) / 2
-        center_y = (np.max(centroid_point[:][:, 1]) + np.min(centroid_point[:][:, 1])) / 2
-        center_z = (np.max(centroid_point[:][:, 2]) + np.min(centroid_point[:][:, 2])) / 2
+        # center_x = (np.max(centroid_point[:][:, 0]) + np.min(centroid_point[:][:, 0])) / 2
+        # center_y = (np.max(centroid_point[:][:, 1]) + np.min(centroid_point[:][:, 1])) / 2
+        # center_z = (np.max(centroid_point[:][:, 2]) + np.min(centroid_point[:][:, 2])) / 2
 
-        # center_x = (np.max(seg_cluster[:][:, 0]) + np.min(seg_cluster[:][:, 0])) / 2
-        # center_y = (np.max(seg_cluster[:][:, 1]) + np.min(seg_cluster[:][:, 1])) / 2
-        # center_z = (np.max(seg_cluster[:][:, 2]) + np.min(seg_cluster[:][:, 2])) / 2
+        center_x = (np.max(seg_cluster[:][:, 0]) + np.min(seg_cluster[:][:, 0])) / 2
+        center_y = (np.max(seg_cluster[:][:, 1]) + np.min(seg_cluster[:][:, 1])) / 2
+        center_z = (np.max(seg_cluster[:][:, 2]) + np.min(seg_cluster[:][:, 2])) / 2
 
         # Calculate  Covirence Matrix
         M20 = np.dot((seg_cluster[:, 0] - center_x).T, (seg_cluster[:, 0] - center_x))
@@ -525,7 +559,7 @@ class Fusion(object):
         # Make Rotational Matrix
         cos_theta = math.cos(heading)
         sin_theta = math.sin(heading)
-        mat_T = np.array([[cos_theta, sin_theta, 0], [-sin_theta, cos_theta, 0], [0, 0, 1]])
+        mat_T = np.array([[cos_theta, -sin_theta, 0], [sin_theta, cos_theta, 0], [0, 0, 1]])
 
         # Calculate Non Rotated Point
         rot_center = np.matmul(mat_T, np.array([center_x, center_y, center_z]).T)
@@ -536,11 +570,14 @@ class Fusion(object):
         dy = np.max(rot_points[:, 1] - rot_center[1]) - np.min(rot_points[:, 1] - rot_center[1])
         dz = np.max(seg_cluster[:][:, 2]) - np.min(seg_cluster[:][:, 2])
         ratio=dy/dx
-        if ratio<0.1:
+        if ratio<0.4:
             return None,None,None
+        # elif name=="Vehicle":
+        #     if(center_z- (-dz/2))>0.5:
+        #         return None,None,None
         else:
             # Result Form PV-RCNN
-            res = np.array([center_x, center_y, center_z, dx, dy, dz, heading])
+            res = np.array([center_x, center_y, center_z, dx, dy, dz,-heading])
 
             # Result Form Box
             to_box_mat = np.array(
