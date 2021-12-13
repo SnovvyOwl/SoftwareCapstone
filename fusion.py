@@ -1,6 +1,7 @@
 from re import I, T, match
 import numpy as np
 from numpy import ma
+# from torch._C import float32
 from modelmanager import ModelManager
 import numpy as np
 import torch
@@ -246,7 +247,7 @@ class Fusion(object):
             for i, label in enumerate(annos[camera_num]["labels"]):
                 idx = None
                 if label != "unknown":
-                    if annos[camera_num]['scores'][i] > 0.5:  # Erase not Critical Object
+                    if annos[camera_num]['scores'][i] > 0.7:  # Erase not Critical Object
                         projected_point = {}
                         projected_point['score'] = annos[camera_num]['scores'][i]
                         projected_point["label"] = label
@@ -433,6 +434,7 @@ class Fusion(object):
                         ["is_generated"] = Box is Generated?
 
         '''
+        cp_pvrcnn=pvrcnn_box
         cp_xyz = xyz.copy()
         for i, frustum in enumerate(frustum_per_onescene):
             found = False
@@ -453,14 +455,15 @@ class Fusion(object):
                     if gen_box is not None:
                         frustum_per_onescene[i]["3d_box"]=gen_box
                         frustum_per_onescene[i]["seg"]=gen_seg
-                        frustum_per_onescene[i]["PVRCNN_Formed_Box"]=gen_PVRCNNbox
-                        matched_box = self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"], pvrcnn_box,frustum_per_onescene[i]["label"])
+                        frustum_per_onescene[i]["PVRCNN_Formed_Box"]=gen_PVRCNNbox.astype(np.float32)
+                        matched_box = self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"],cp_pvrcnn,frustum_per_onescene[i]["label"])
                         if matched_box is not None:
                             frustum_per_onescene[i]["is_generated"] = False
                             frustum_per_onescene[i]["PVRCNN_Formed_Box"] = matched_box
                             frustum_per_onescene[i]["3d_box"] = boxes_to_corners_3d(matched_box)
                         else:
                             frustum_per_onescene[i]["is_generated"] = True
+                            cp_pvrcnn=np.vstack((cp_pvrcnn,gen_PVRCNNbox.astype(np.float32)))
                     else:
                         frustum_per_onescene[i]["3d_box"]=gen_box
                         frustum_per_onescene[i]["is_generated"]=False
@@ -524,20 +527,16 @@ class Fusion(object):
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
 
         """
-        seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.01)
+        seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.005)
         if seg_idx is None:
             return None,None,None
-        elif len(seg_idx)<100:
+        elif len(seg_idx)<20:
             return None, None, None
         else:
             # *********************************************************************************************
             # PCA
 
             # Calculate Center Point
-
-            # center_x = (np.max(centroid_point[:][:, 0]) + np.min(centroid_point[:][:, 0])) / 2
-            # center_y = (np.max(centroid_point[:][:, 1]) + np.min(centroid_point[:][:, 1])) / 2
-            # center_z = (np.max(centroid_point[:][:, 2]) + np.min(centroid_point[:][:, 2])) / 2
 
             center_x = (np.max(seg_cluster[:][:, 0]) + np.min(seg_cluster[:][:, 0])) / 2
             center_y = (np.max(seg_cluster[:][:, 1]) + np.min(seg_cluster[:][:, 1])) / 2
@@ -575,9 +574,11 @@ class Fusion(object):
             dz = np.max(seg_cluster[:][:, 2]) - np.min(seg_cluster[:][:, 2])
             ratio=dy/dx
 
-            if ratio<0.4:
+            if ratio<0.4:            ##Plane
                 return None,None,None
-            elif (center_z-dz/2)>1:
+            elif dy<0.2 and dx<0.2:  ## Column
+                return None,None,None
+            elif (center_z-dz/2)>0.8: ## is UPPER
                 return None,None,None
             else:
                 # Result Form PV-RCNN
