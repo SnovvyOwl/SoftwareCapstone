@@ -123,7 +123,7 @@ class Inference(object):
             if name == "Pedestrian":
                 gt_idx = np.where(iou_mat[i] > 0)[0]
                 if len(gt_idx) == 0:
-                    # print("p:"+self.current_segment_frame)
+                    # `print("p:"+self.current_segment_frame)
                     self.PVRCNN_pedestrianAP.add(score[i], False, 0)
                 else:
                     if len(gt_idx) > 1:

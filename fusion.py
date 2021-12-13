@@ -501,8 +501,7 @@ class Fusion(object):
                 
                 if (len(np.where(match_ceter_to_corner < box_radius)[0])) >= 8:
                     return PVRCNN_boxes[match]
-                # elif dx<0.2 and dy<0.2:
-                #     return None
+            
                 else:
                     return None
         else:
@@ -527,10 +526,10 @@ class Fusion(object):
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
 
         """
-        seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.005)
+        seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.01)
         if seg_idx is None:
             return None,None,None
-        elif len(seg_idx)<20:
+        elif len(seg_idx)<15:
             return None, None, None
         else:
             # *********************************************************************************************
@@ -574,11 +573,11 @@ class Fusion(object):
             dz = np.max(seg_cluster[:][:, 2]) - np.min(seg_cluster[:][:, 2])
             ratio=dy/dx
 
-            if ratio<0.4:            ##Plane
+            if ratio<0.35:            ##Plane
                 return None,None,None
-            elif dy<0.2 and dx<0.2:  ## Column
+            elif dy<0.25 or dx<0.25:  ## Column
                 return None,None,None
-            elif (center_z-dz/2)>0.8: ## is UPPER
+            elif (center_z-dz/2)>1: ## is UPPER
                 return None,None,None
             else:
                 # Result Form PV-RCNN
@@ -594,7 +593,7 @@ class Fusion(object):
                 box = np.matmul(to_box_mat, template.T).T
                 return box, seg_cluster, res
 
-    def segmentation(self, frustum_point, centroid_point, frustum_idx,seg_frustum=True, max_radius=0.03):
+    def segmentation(self, frustum_point, centroid_point, frustum_idx,seg_frustum=True, max_radius=0.01):
         '''
             DO: Segmentation (make Cluster)
             INPUT: frustum_point= 10% Large Frustum (N,3)[x,y,z]
