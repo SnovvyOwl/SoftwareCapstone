@@ -78,8 +78,7 @@ def boxes_to_corners_3d(boxes3d):
 
 
 if __name__ == "__main__":
-    frame_idx = 1
-
+    frame_idx = 39
     dirpath = "./data/waymo/waymo_infos_val.pkl"
     lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5], [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
     fusion_color = [[0, 1, 0] for i in range(len(lines))]
@@ -104,7 +103,7 @@ if __name__ == "__main__":
         frustum = pickle.load(f)
 
     lidar_idx = str(5 * frame_idx).zfill(4)
-    print(lidar_idx)
+    # print(lidar_idx)
     xyz = np.load(
         "/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/" + lidar_idx + ".npy")
     xyz = xyz[:, :3]
@@ -118,10 +117,12 @@ if __name__ == "__main__":
     pcds = []
     vecs = []
     boxes = []
-    i=1
+    i=0
+    j=0
+    k=0
     for seg in segs:
         if seg["label"] == 'Pedestrian':
-            print("My predition: {0}".format(i))
+        
             box3d = o3d.geometry.LineSet()
             box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines = o3d.utility.Vector2iVector(lines)
@@ -129,11 +130,14 @@ if __name__ == "__main__":
             boxes.append(box3d)
             pcd=o3d.geometry.PointCloud()
             pcd.points=o3d.utility.Vector3dVector(seg["seg"])
-            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
+            pcd.paint_uniform_color([1, 0.6667 , 0])
             pcds.append(pcd)
+            i+=1
+            
             vecs=vecs+list(seg["seg"])
         elif seg["label"] == 'Vehicle':
             box3d = o3d.geometry.LineSet()
+            j+=1
             box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines = o3d.utility.Vector2iVector(lines)
             box3d.colors = o3d.utility.Vector3dVector(fusion_color)
@@ -144,6 +148,7 @@ if __name__ == "__main__":
             pcds.append(pcd)
             vecs=vecs+list(seg["seg"])
         elif seg["label"] == 'Cyclist':
+            k+=1
             box3d = o3d.geometry.LineSet()
             box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines = o3d.utility.Vector2iVector(lines)
@@ -154,19 +159,19 @@ if __name__ == "__main__":
             pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
             pcds.append(pcd)
             vecs=vecs+list(seg["seg"])
-        elif seg["label"] == 'Sign':
-            box3d = o3d.geometry.LineSet()
+        # elif seg["label"] == 'Sign':
+        #     box3d = o3d.geometry.LineSet()
 
-            # box=fu.make_3d_box(seg["seg"])
-            box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
-            box3d.lines = o3d.utility.Vector2iVector(lines)
-            box3d.colors = o3d.utility.Vector3dVector(fusion_color)
-            boxes.append(box3d)
-            pcd=o3d.geometry.PointCloud()
-            pcd.points=o3d.utility.Vector3dVector(seg["seg"])
-            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
-            pcds.append(pcd)
-            vecs=vecs+list(seg["seg"])  
+        #     # box=fu.make_3d_box(seg["seg"])
+        #     box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
+        #     box3d.lines = o3d.utility.Vector2iVector(lines)
+        #     box3d.colors = o3d.utility.Vector3dVector(fusion_color)
+        #     boxes.append(box3d)
+        #     pcd=o3d.geometry.PointCloud()
+        #     pcd.points=o3d.utility.Vector3dVector(seg["seg"])
+        #     pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
+        #     pcds.append(pcd)
+        #     vecs=vecs+list(seg["seg"])  
     box = make_3dBox(annos3d[frame_idx])
     cp_xyz = xyz.copy()
 
@@ -186,6 +191,10 @@ if __name__ == "__main__":
         vis.add_geometry(f)
     vis.get_render_option().line_width = 100
     vis.update_renderer()
-
+    print()
+    print("My predition: {0}".format(i))
+    print("My Vehicle: {0}".format(j))
+    print("My Cyclist: {0}".format(k))
     vis.run()
     vis.destroy_window()
+      

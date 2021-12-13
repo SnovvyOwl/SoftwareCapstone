@@ -298,35 +298,44 @@ class Fusion(object):
                                 # divide part 
                                 idxmin,idxmax=self.center_box_seg(xyz[center_frustum],center_frustum)
                                 # If center box has 2 Object? erase Not Interest Object
-                                if len(idxmin) != len(center_frustum):
-                                    if len(idxmin) < len(idxmax):
-                                        center_frustum = np.array(list(set(center_frustum) - set(idxmin)))
-                                    elif len(idxmin) > len(idxmax):
-                                        center_frustum = np.array(list(set(center_frustum) - set(idxmax)))
+                                if (len(idxmax)+len(idxmin))==len(center_frustum):
+                                    if len(idxmin) != len(center_frustum):
+                                        if len(idxmin) < len(idxmax):
+                                            center_frustum = np.array(list(set(center_frustum) - set(idxmin)))
+                                        elif len(idxmin) > len(idxmax):
+                                            center_frustum = np.array(list(set(center_frustum) - set(idxmax)))
+                                        else:
+                                            idxmin,idxmax=self.center_box_seg( xyz[center_frustum_L],center_frustum_L)
+                                            if len(idxmin) != len(center_frustum_L):
+                                                if len(idxmin) < len(idxmax):
+                                                    center_frustum = np.array(list(set(center_frustum_L) - set(idxmin)))
+                                                elif len(idxmin) > len(idxmax):
+                                                    center_frustum = np.array(list(set(center_frustum_L) - set(idxmax)))
+                                                else:
+                                                    center_frustum = np.array(list(set(idxmax)))
                                     else:
-                                        idxmin,idxmax=self.center_box_seg( xyz[center_frustum_L],center_frustum_L)
-                                        if len(idxmin) != len(center_frustum_L):
-                                            if len(idxmin) < len(idxmax):
-                                                center_frustum = np.array(list(set(center_frustum_L) - set(idxmin)))
-                                            elif len(idxmin) > len(idxmax):
-                                                center_frustum = np.array(list(set(center_frustum_L) - set(idxmax)))
-                                            else:
-                                                center_frustum = np.array(list(set(idxmax)))
+                                        center_frustum=np.array(list(set(idxmax)|(set(center_frustum_L) - set(idxmin)-set(idxmax))))
+
                                 elif len(idxmax) != len(center_frustum):
-                                    if len(idxmin) < len(idxmax):
-                                        center_frustum = np.array(list(set(center_frustum) - set(idxmin)))
-                                    elif len(idxmin) > len(idxmax):
-                                        center_frustum = np.array(list(set(center_frustum) - set(idxmax)))
+                                    if (len(idxmax)+len(idxmin))==len(center_frustum):
+                                        if len(idxmin) < len(idxmax):
+                                            center_frustum = np.array(list(set(center_frustum) - set(idxmin)))
+                                        elif len(idxmin) > len(idxmax):
+                                            center_frustum = np.array(list(set(center_frustum) - set(idxmax)))
+                                        else:
+                                            idxmin,idxmax=self.center_box_seg( xyz[center_frustum_L],center_frustum_L)
+                                            if len(idxmin) != len(center_frustum_L):
+                                                if len(idxmin) < len(idxmax):
+                                                    center_frustum = np.array(list(set(center_frustum_L) - set(idxmin)))
+                                                elif len(idxmin) > len(idxmax):
+                                                    center_frustum = np.array(list(set(center_frustum_L) - set(idxmax)))
+                                                else:
+                                                    center_frustum = np.array(list(set(idxmax)))
                                     else:
-                                        idxmin,idxmax=self.center_box_seg( xyz[center_frustum_L],center_frustum_L)
-                                        if len(idxmin) != len(center_frustum_L):
-                                            if len(idxmin) < len(idxmax):
-                                                center_frustum = np.array(list(set(center_frustum_L) - set(idxmin)))
-                                            elif len(idxmin) > len(idxmax):
-                                                center_frustum = np.array(list(set(center_frustum_L) - set(idxmax)))
-                                            else:
-                                                center_frustum = np.array(list(set(idxmax)))
-                                else:
+                                        center_frustum=np.array(list(set(idxmax)|( set(center_frustum_L) - set(idxmin)-set(idxmax))))
+
+                                else: 
+
                                     pass
                             if len(xyz[center_frustum]) != 0:
                                 projected_point["centroid"] = xyz[center_frustum]
@@ -349,8 +358,8 @@ class Fusion(object):
         max_radius_point = np.concatenate((max_radius_point, np.array([0, 0, 0])), axis=0)
         min_radius_point = np.reshape(min_radius_point, (2, 3))
         max_radius_point = np.reshape(max_radius_point, (2, 3))
-        resmin, idxmin = self.segmentation(center_box_point, min_radius_point,center_box_idx,max_radius=0.03)
-        resmax, idxmax = self.segmentation(center_box_point, max_radius_point,center_box_idx,max_radius=0.03)
+        resmin, idxmin = self.segmentation(center_box_point, min_radius_point,center_box_idx,seg_frustum=False,max_radius=0.05)
+        resmax, idxmax = self.segmentation(center_box_point, max_radius_point,center_box_idx,seg_frustum=False,max_radius=0.05)
         return idxmin,idxmax
 
     def box_is_in_plane(self, annos):
@@ -466,14 +475,6 @@ class Fusion(object):
         return gt_idx[np.argmax(iou_mat[0, gt_idx])]
 
     def is_box_in_box(self, generate_Box, PVRCNN_boxes,label):
-        # if label=="Vehicle":
-        #     min_z=generate_Box[2]-(generate_Box[5]/2)
-        #     if min_z>0.1:
-        #         return None
-        #     else:
-        #         pass
-        # else:
-        #     pass
         generate_Box = np.vstack((generate_Box, np.zeros(7)))
         mat = boxes_inbox_gpu(torch.tensor(generate_Box.astype("float32")).cuda(), torch.tensor(PVRCNN_boxes).cuda())
         # mat = boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(), torch.tensor(PVRCNN_boxes).cuda())
@@ -492,12 +493,13 @@ class Fusion(object):
                 dz = PVRCNN_boxes[match][0, 5]
 
                 box3d_gen = boxes_to_corners_3d(generate_Box)
-                match_ceter_to_corner = ((box3d_gen[0][:, 0] - PVRCNN_boxes[match][0][0]) ** 2 + (
-                            box3d_gen[0][:, 1] - PVRCNN_boxes[match][0][1]) ** 2 + (
-                                                     box3d_gen[0][:, 2] - PVRCNN_boxes[match][0][2]) ** 2) ** 0.5
+                match_ceter_to_corner = ((box3d_gen[0][:, 0] - PVRCNN_boxes[match][0][0]) ** 2 + (box3d_gen[0][:, 1] - PVRCNN_boxes[match][0][1]) ** 2 + (box3d_gen[0][:, 2] - PVRCNN_boxes[match][0][2]) ** 2) ** 0.5
                 box_radius = ((dx / 2) ** 2 + (dy / 2) ** 2 + (dz / 2) ** 2) ** 0.5
+                
                 if (len(np.where(match_ceter_to_corner < box_radius)[0])) >= 8:
                     return PVRCNN_boxes[match]
+                # elif dx<0.2 and dy<0.2:
+                #     return None
                 else:
                     return None
         else:
@@ -523,8 +525,10 @@ class Fusion(object):
 
         """
         seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.01)
-        if len(seg_idx)<10 :
+        if seg_idx is None:
             return None,None,None
+        elif len(seg_idx)<100:
+            return None, None, None
         else:
             # *********************************************************************************************
             # PCA
@@ -573,6 +577,8 @@ class Fusion(object):
 
             if ratio<0.4:
                 return None,None,None
+            elif (center_z-dz/2)>1:
+                return None,None,None
             else:
                 # Result Form PV-RCNN
                 res = np.array([center_x, center_y, center_z, dx, dy, dz,-heading])
@@ -587,7 +593,7 @@ class Fusion(object):
                 box = np.matmul(to_box_mat, template.T).T
                 return box, seg_cluster, res
 
-    def segmentation(self, frustum_point, centroid_point, frustum_idx, max_radius=0.03):
+    def segmentation(self, frustum_point, centroid_point, frustum_idx,seg_frustum=True, max_radius=0.03):
         '''
             DO: Segmentation (make Cluster)
             INPUT: frustum_point= 10% Large Frustum (N,3)[x,y,z]
@@ -619,7 +625,13 @@ class Fusion(object):
             cp_frustum_idx = next_cp_frustum_idx
             cp_frustum_point = next_cp_frustum_point
         cluster = np.array(cluster)
-        return cluster, idx
+        if seg_frustum:
+            if len(idx)!=len(cluster):
+                return cluster, idx
+            else:
+                return None,None
+        else:
+            return cluster, idx
 
     # #Test Code
     # def set_matrix(self):
