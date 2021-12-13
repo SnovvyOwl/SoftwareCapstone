@@ -10,7 +10,7 @@ from tqdm import tqdm
 import PVRCNN.utils.common_utils
 import PVRCNN.ops.roiaware_pool3d.roiaware_pool3d_utils
 import math
-from PVRCNN.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu
+from PVRCNN.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu ,boxes_inbox_gpu
 
 CAMMERA_NUM = 5
 
@@ -416,16 +416,23 @@ class Fusion(object):
             if found is False:
                 if frustum["centroid"] is not None:
 
-                    frustum_per_onescene[i]["3d_box"], frustum_per_onescene[i]["seg"], frustum_per_onescene[i][
-                        "PVRCNN_Formed_Box"] = self.make_3d_box(cp_xyz[frustum["large_frustum"]], frustum["centroid"],
-                                                                frustum["large_frustum"])
-                    matched_box = self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"], pvrcnn_box)
-                    if matched_box is not None:
-                        frustum_per_onescene[i]["is_generated"] = False
-                        frustum_per_onescene[i]["PVRCNN_Formed_Box"] = matched_box
-                        frustum_per_onescene[i]["3d_box"] = boxes_to_corners_3d(matched_box)
+                    
+                    gen_box,gen_seg,gen_PVRCNNbox= self.make_3d_box(cp_xyz[frustum["large_frustum"]], frustum["centroid"],frustum["large_frustum"])
+                    if gen_box is not None:
+                        frustum_per_onescene[i]["3d_box"]=gen_box
+                        frustum_per_onescene[i]["seg"]=gen_seg
+                        frustum_per_onescene[i]["PVRCNN_Formed_Box"]=gen_PVRCNNbox
+                        matched_box = self.is_box_in_box(frustum_per_onescene[i]["PVRCNN_Formed_Box"], pvrcnn_box)
+                        if matched_box is not None:
+                            frustum_per_onescene[i]["is_generated"] = False
+                            frustum_per_onescene[i]["PVRCNN_Formed_Box"] = matched_box
+                            frustum_per_onescene[i]["3d_box"] = boxes_to_corners_3d(matched_box)
+                        else:
+                            frustum_per_onescene[i]["is_generated"] = True
                     else:
-                        frustum_per_onescene[i]["is_generated"] = True
+                        frustum_per_onescene[i]["3d_box"]=gen_box
+                        frustum_per_onescene[i]["is_generated"]=False
+
                 else:
                     frustum_per_onescene[i]["is_generated"] = False
                     frustum_per_onescene[i]["3d_box"] = None
@@ -437,15 +444,17 @@ class Fusion(object):
 
     def is_box_in_box(self, generate_Box, PVRCNN_boxes):
         generate_Box = np.vstack((generate_Box, np.zeros(7)))
-        mat = boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(), torch.tensor(PVRCNN_boxes).cuda())
+        mat = boxes_inbox_gpu(torch.tensor(generate_Box.astype("float32")).cuda(), torch.tensor(PVRCNN_boxes).cuda())
+        # mat = boxes_iou3d_gpu(torch.tensor(generate_Box.astype("float32")).cuda(), torch.tensor(PVRCNN_boxes).cuda())
         mat = mat.cpu().numpy()
         match = np.where(mat[0] > 0.0)[0]
         if len(match) > 1:
             match = np.array([self.find_max(match, mat)])
         if len(match) != 0:
-            if mat[0, int(match)] > 0.2:
+            if mat[0, int(match)] > 0.6:
                 return PVRCNN_boxes[match]
             else:
+          
                 dx = PVRCNN_boxes[match][0, 3]
                 dy = PVRCNN_boxes[match][0, 4]
                 dz = PVRCNN_boxes[match][0, 5]
@@ -455,7 +464,7 @@ class Fusion(object):
                             box3d_gen[0][:, 1] - PVRCNN_boxes[match][0][1]) ** 2 + (
                                                      box3d_gen[0][:, 2] - PVRCNN_boxes[match][0][2]) ** 2) ** 0.5
                 box_radius = ((dx / 2) ** 2 + (dy / 2) ** 2 + (dz / 2) ** 2) ** 0.5
-                if (len(np.where(match_ceter_to_corner < box_radius)[0])) >= 6:
+                if (len(np.where(match_ceter_to_corner < box_radius)[0])) >= 8:
                     return PVRCNN_boxes[match]
                 else:
                     return None
@@ -488,11 +497,13 @@ class Fusion(object):
 
         # Calculate Center Point
 
-        # center_x=np.mean(seg_cluster[:][:,0])
-        # center_y=np.mean(seg_cluster[:][:,1])
-        center_x = (np.max(seg_cluster[:][:, 0]) + np.min(seg_cluster[:][:, 0])) / 2
-        center_y = (np.max(seg_cluster[:][:, 1]) + np.min(seg_cluster[:][:, 1])) / 2
-        center_z = (np.max(seg_cluster[:][:, 2]) + np.min(seg_cluster[:][:, 2])) / 2
+        center_x = (np.max(centroid_point[:][:, 0]) + np.min(centroid_point[:][:, 0])) / 2
+        center_y = (np.max(centroid_point[:][:, 1]) + np.min(centroid_point[:][:, 1])) / 2
+        center_z = (np.max(centroid_point[:][:, 2]) + np.min(centroid_point[:][:, 2])) / 2
+
+        # center_x = (np.max(seg_cluster[:][:, 0]) + np.min(seg_cluster[:][:, 0])) / 2
+        # center_y = (np.max(seg_cluster[:][:, 1]) + np.min(seg_cluster[:][:, 1])) / 2
+        # center_z = (np.max(seg_cluster[:][:, 2]) + np.min(seg_cluster[:][:, 2])) / 2
 
         # Calculate  Covirence Matrix
         M20 = np.dot((seg_cluster[:, 0] - center_x).T, (seg_cluster[:, 0] - center_x))
@@ -524,19 +535,22 @@ class Fusion(object):
         dx = np.max(rot_points[:, 0] - rot_center[0]) - np.min(rot_points[:, 0] - rot_center[0])
         dy = np.max(rot_points[:, 1] - rot_center[1]) - np.min(rot_points[:, 1] - rot_center[1])
         dz = np.max(seg_cluster[:][:, 2]) - np.min(seg_cluster[:][:, 2])
+        ratio=dy/dx
+        if ratio<0.1:
+            return None,None,None
+        else:
+            # Result Form PV-RCNN
+            res = np.array([center_x, center_y, center_z, dx, dy, dz, heading])
 
-        # Result Form PV-RCNN
-        res = np.array([center_x, center_y, center_z, dx, dy, dz, heading])
-
-        # Result Form Box
-        to_box_mat = np.array(
-            [[cos_theta, -sin_theta, 0, center_x], [sin_theta, cos_theta, 0, center_y], [0, 0, 1, center_z]])
-        template = np.array(
-            [[dx / 2, dy / 2, -dz / 2, 1], [dx / 2, -dy / 2, -dz / 2, 1], [-dx / 2, -dy / 2, -dz / 2, 1],
-             [-dx / 2, dy / 2, -dz / 2, 1], [dx / 2, dy / 2, dz / 2, 1], [dx / 2, -dy / 2, dz / 2, 1],
-             [-dx / 2, -dy / 2, dz / 2, 1], [-dx / 2, dy / 2, dz / 2, 1]])
-        box = np.matmul(to_box_mat, template.T).T
-        return box, seg_cluster, res
+            # Result Form Box
+            to_box_mat = np.array(
+                [[cos_theta, -sin_theta, 0, center_x], [sin_theta, cos_theta, 0, center_y], [0, 0, 1, center_z]])
+            template = np.array(
+                [[dx / 2, dy / 2, -dz / 2, 1], [dx / 2, -dy / 2, -dz / 2, 1], [-dx / 2, -dy / 2, -dz / 2, 1],
+                [-dx / 2, dy / 2, -dz / 2, 1], [dx / 2, dy / 2, dz / 2, 1], [dx / 2, -dy / 2, dz / 2, 1],
+                [-dx / 2, -dy / 2, dz / 2, 1], [-dx / 2, dy / 2, dz / 2, 1]])
+            box = np.matmul(to_box_mat, template.T).T
+            return box, seg_cluster, res
 
     def segmentation(self, frustum_point, centroid_point, frustum_idx, max_radius=0.03):
         '''
