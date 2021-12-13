@@ -440,8 +440,6 @@ class Fusion(object):
                             break
             if found is False:
                 if frustum["centroid"] is not None:
-
-                    
                     gen_box,gen_seg,gen_PVRCNNbox= self.make_3d_box(cp_xyz[frustum["large_frustum"]], frustum["centroid"],frustum["large_frustum"])
                     if gen_box is not None:
                         frustum_per_onescene[i]["3d_box"]=gen_box
@@ -525,69 +523,69 @@ class Fusion(object):
 
         """
         seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.01)
-
-        # *********************************************************************************************
-        # PCA
-
-        # Calculate Center Point
-
-        # center_x = (np.max(centroid_point[:][:, 0]) + np.min(centroid_point[:][:, 0])) / 2
-        # center_y = (np.max(centroid_point[:][:, 1]) + np.min(centroid_point[:][:, 1])) / 2
-        # center_z = (np.max(centroid_point[:][:, 2]) + np.min(centroid_point[:][:, 2])) / 2
-
-        center_x = (np.max(seg_cluster[:][:, 0]) + np.min(seg_cluster[:][:, 0])) / 2
-        center_y = (np.max(seg_cluster[:][:, 1]) + np.min(seg_cluster[:][:, 1])) / 2
-        center_z = (np.max(seg_cluster[:][:, 2]) + np.min(seg_cluster[:][:, 2])) / 2
-
-        # Calculate  Covirence Matrix
-        M20 = np.dot((seg_cluster[:, 0] - center_x).T, (seg_cluster[:, 0] - center_x))
-        M11 = np.dot((seg_cluster[:, 0] - center_x).T, (seg_cluster[:, 1] - center_y))
-        M02 = np.dot((seg_cluster[:, 1] - center_y).T, (seg_cluster[:, 1] - center_y))
-        M = np.array([[M20, M11], [M11, M02]])
-        # Diagonalization
-        w, v = np.linalg.eig(M)
-
-        # Check Principal Axis
-        if w[0] > w[1]:
-            axis = v[0]
-        else:
-            axis = v[1]
-        # *********************************************************************************************
-        # Calcluate Heading Angle
-        heading = math.atan2(axis[1], axis[0])
-
-        # Make Rotational Matrix
-        cos_theta = math.cos(heading)
-        sin_theta = math.sin(heading)
-        mat_T = np.array([[cos_theta, -sin_theta, 0], [sin_theta, cos_theta, 0], [0, 0, 1]])
-
-        # Calculate Non Rotated Point
-        rot_center = np.matmul(mat_T, np.array([center_x, center_y, center_z]).T)
-        rot_points = np.matmul(mat_T, seg_cluster.T).T
-
-        # Calculate Length of X,Y,Z
-        dx = np.max(rot_points[:, 0] - rot_center[0]) - np.min(rot_points[:, 0] - rot_center[0])
-        dy = np.max(rot_points[:, 1] - rot_center[1]) - np.min(rot_points[:, 1] - rot_center[1])
-        dz = np.max(seg_cluster[:][:, 2]) - np.min(seg_cluster[:][:, 2])
-        ratio=dy/dx
-        if ratio<0.4:
+        if len(seg_idx)<10 :
             return None,None,None
-        # elif name=="Vehicle":
-        #     if(center_z- (-dz/2))>0.5:
-        #         return None,None,None
         else:
-            # Result Form PV-RCNN
-            res = np.array([center_x, center_y, center_z, dx, dy, dz,-heading])
+            # *********************************************************************************************
+            # PCA
+
+            # Calculate Center Point
+
+            # center_x = (np.max(centroid_point[:][:, 0]) + np.min(centroid_point[:][:, 0])) / 2
+            # center_y = (np.max(centroid_point[:][:, 1]) + np.min(centroid_point[:][:, 1])) / 2
+            # center_z = (np.max(centroid_point[:][:, 2]) + np.min(centroid_point[:][:, 2])) / 2
+
+            center_x = (np.max(seg_cluster[:][:, 0]) + np.min(seg_cluster[:][:, 0])) / 2
+            center_y = (np.max(seg_cluster[:][:, 1]) + np.min(seg_cluster[:][:, 1])) / 2
+            center_z = (np.max(seg_cluster[:][:, 2]) + np.min(seg_cluster[:][:, 2])) / 2
+
+            # Calculate  Covirence Matrix
+            M20 = np.dot((seg_cluster[:, 0] - center_x).T, (seg_cluster[:, 0] - center_x))
+            M11 = np.dot((seg_cluster[:, 0] - center_x).T, (seg_cluster[:, 1] - center_y))
+            M02 = np.dot((seg_cluster[:, 1] - center_y).T, (seg_cluster[:, 1] - center_y))
+            M = np.array([[M20, M11], [M11, M02]])
+            # Diagonalization
+            w, v = np.linalg.eig(M)
+
+            # Check Principal Axis
+            if w[0] > w[1]:
+                axis = v[0]
+            else:
+                axis = v[1]
+            # *********************************************************************************************
+            # Calcluate Heading Angle
+            heading = math.atan2(axis[1], axis[0])
+
+            # Make Rotational Matrix
+            cos_theta = math.cos(heading)
+            sin_theta = math.sin(heading)
+            mat_T = np.array([[cos_theta, -sin_theta, 0], [sin_theta, cos_theta, 0], [0, 0, 1]])
+
+            # Calculate Non Rotated Point
+            rot_center = np.matmul(mat_T, np.array([center_x, center_y, center_z]).T)
+            rot_points = np.matmul(mat_T, seg_cluster.T).T
+
+            # Calculate Length of X,Y,Z
+            dx = np.max(rot_points[:, 0] - rot_center[0]) - np.min(rot_points[:, 0] - rot_center[0])
+            dy = np.max(rot_points[:, 1] - rot_center[1]) - np.min(rot_points[:, 1] - rot_center[1])
+            dz = np.max(seg_cluster[:][:, 2]) - np.min(seg_cluster[:][:, 2])
+            ratio=dy/dx
+
+            if ratio<0.4:
+                return None,None,None
+            else:
+                # Result Form PV-RCNN
+                res = np.array([center_x, center_y, center_z, dx, dy, dz,-heading])
 
             # Result Form Box
-            to_box_mat = np.array(
-                [[cos_theta, -sin_theta, 0, center_x], [sin_theta, cos_theta, 0, center_y], [0, 0, 1, center_z]])
-            template = np.array(
-                [[dx / 2, dy / 2, -dz / 2, 1], [dx / 2, -dy / 2, -dz / 2, 1], [-dx / 2, -dy / 2, -dz / 2, 1],
-                [-dx / 2, dy / 2, -dz / 2, 1], [dx / 2, dy / 2, dz / 2, 1], [dx / 2, -dy / 2, dz / 2, 1],
-                [-dx / 2, -dy / 2, dz / 2, 1], [-dx / 2, dy / 2, dz / 2, 1]])
-            box = np.matmul(to_box_mat, template.T).T
-            return box, seg_cluster, res
+                to_box_mat = np.array(
+                    [[cos_theta, -sin_theta, 0, center_x], [sin_theta, cos_theta, 0, center_y], [0, 0, 1, center_z]])
+                template = np.array(
+                    [[dx / 2, dy / 2, -dz / 2, 1], [dx / 2, -dy / 2, -dz / 2, 1], [-dx / 2, -dy / 2, -dz / 2, 1],
+                    [-dx / 2, dy / 2, -dz / 2, 1], [dx / 2, dy / 2, dz / 2, 1], [dx / 2, -dy / 2, dz / 2, 1],
+                    [-dx / 2, -dy / 2, dz / 2, 1], [-dx / 2, dy / 2, dz / 2, 1]])
+                box = np.matmul(to_box_mat, template.T).T
+                return box, seg_cluster, res
 
     def segmentation(self, frustum_point, centroid_point, frustum_idx, max_radius=0.03):
         '''

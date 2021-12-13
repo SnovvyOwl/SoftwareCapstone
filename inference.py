@@ -76,6 +76,7 @@ class Inference(object):
             for gt_frame in self.gt_data:
                 if frame["frame_id"] == gt_frame["frame_id"]:
                     # TP
+                    self.current_segment_frame=gt_frame["frame_id"]
                     # Calcluate IoU For One Frame
                     sign_idx = np.where(gt_frame["annos"]["name"] == "Sign")
                     iou_mat = boxes_iou3d_gpu(
@@ -91,6 +92,7 @@ class Inference(object):
             for gt_frame in self.gt_data:
                 if frame["frame_id"] == gt_frame["frame_id"]:
                     # TP
+                    self.current_segment_frame=gt_frame["frame_id"]
                     # Calcluate IoU For One Frame
                     sign_idx = np.where(gt_frame["annos"]["name"] == "Sign")
                     iou_mat = boxes_iou3d_gpu(
@@ -121,6 +123,7 @@ class Inference(object):
             if name == "Pedestrian":
                 gt_idx = np.where(iou_mat[i] > 0)[0]
                 if len(gt_idx) == 0:
+                    print("p:"+self.current_segment_frame)
                     self.PVRCNN_pedestrianAP.add(score[i], False, 0)
                 else:
                     if len(gt_idx) > 1:
@@ -152,6 +155,7 @@ class Inference(object):
                 gt_idx = np.where(iou_mat[i] > 0)[0]
                 if len(gt_idx) == 0:
                     self.PVRCNN_cyclistAP.add(score[i], False, 0)
+
                 else:
                     if len(gt_idx) > 1:
                         gt_idx = self.find_max(gt_idx, i, iou_mat)
@@ -174,6 +178,7 @@ class Inference(object):
             if name == "Pedestrian":
                 gt_idx = np.where(iou_mat[i] > 0)[0]
                 if len(gt_idx) == 0:
+                    print(self.current_segment_frame)
                     self.pedestrianAP.add(score[i], False, 0)
                 else:
                     if len(gt_idx) > 1:
