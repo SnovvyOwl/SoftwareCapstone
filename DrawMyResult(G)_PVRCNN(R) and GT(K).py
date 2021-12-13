@@ -78,7 +78,7 @@ def boxes_to_corners_3d(boxes3d):
 
 
 if __name__ == "__main__":
-    frame_idx = 2
+    frame_idx = 1
 
     dirpath = "./data/waymo/waymo_infos_val.pkl"
     lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5], [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
@@ -118,9 +118,10 @@ if __name__ == "__main__":
     pcds = []
     vecs = []
     boxes = []
-
+    i=1
     for seg in segs:
         if seg["label"] == 'Pedestrian':
+            print("My predition: {0}".format(i))
             box3d = o3d.geometry.LineSet()
             box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines = o3d.utility.Vector2iVector(lines)
@@ -131,7 +132,7 @@ if __name__ == "__main__":
             pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
             pcds.append(pcd)
             vecs=vecs+list(seg["seg"])
-        if seg["label"] == 'Vehicle':
+        elif seg["label"] == 'Vehicle':
             box3d = o3d.geometry.LineSet()
             box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines = o3d.utility.Vector2iVector(lines)
@@ -142,7 +143,7 @@ if __name__ == "__main__":
             pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
             pcds.append(pcd)
             vecs=vecs+list(seg["seg"])
-        if seg["label"] == 'Cyclist':
+        elif seg["label"] == 'Cyclist':
             box3d = o3d.geometry.LineSet()
             box3d.points = o3d.utility.Vector3dVector(seg["3d_box"])
             box3d.lines = o3d.utility.Vector2iVector(lines)
