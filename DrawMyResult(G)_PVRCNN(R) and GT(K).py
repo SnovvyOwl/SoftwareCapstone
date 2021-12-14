@@ -76,7 +76,7 @@ def boxes_to_corners_3d(boxes3d):
 
 
 if __name__ == "__main__":
-    frame_idx=73
+    frame_idx=1
     dirpath = "./data/waymo/waymo_infos_val.pkl"
     lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5], [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
     fusion_color = [[0, 1, 0] for i in range(len(lines))]
@@ -95,9 +95,9 @@ if __name__ == "__main__":
         groudTruth_boxes.append(box3d)
     ############################################
 
-    with open("anno3d2.pkl", 'rb') as f:
+    with open("anno3d.pkl", 'rb') as f:
         annos3d = pickle.load(f)
-    with open("frustum2.pkl", 'rb') as f:
+    with open("frustum.pkl", 'rb') as f:
         frustum = pickle.load(f)
 
     lidar_idx = str(5 * frame_idx).zfill(4)

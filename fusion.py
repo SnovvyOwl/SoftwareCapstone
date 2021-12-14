@@ -156,8 +156,10 @@ class Fusion(object):
             img3d["frame_id"] = sequence + '_' + annos2d[i]["frame_id"][0][-3:]
             img3d["filename"] = annos2d[i]["image_id"]
             result.append(img3d)
-        with open("frustum2.pkl", 'wb') as f:
+        with open("frustum.pkl", 'wb') as f:
             pickle.dump(result, f)
+        with open("annos3d.pkl", 'wb') as f:
+            pickle.dump(annos3d, f)
         return result, annos3d
 
     def pointcloud2image(self, lidar):
