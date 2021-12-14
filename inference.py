@@ -42,6 +42,7 @@ class AveragePrecision(object):
                 pre_recall = recall
                 precisions.append(precision)
                 recalls.append(recall)
+        plt.clf()
         plt.title(self.name)
         plt.plot(recalls,precisions)
         plt.savefig(self.name+".png")
@@ -78,11 +79,11 @@ class Inference(object):
     def main(self):
         self.load_ground_truth_data()
         self.result_of_fusion,self.PVRCNN_result= self.fusion.main()
-        # self.PVRCNN_result=annos3d
-        with open("frustum.pkl", 'rb') as f:
-            self.result_of_fusion = pickle.load(f)
-        with open("anno3d.pkl", 'rb') as f:
-            self.PVRCNN_result = pickle.load(f)
+       
+        # with open("frustum2.pkl", 'rb') as f:
+        #     self.result_of_fusion = pickle.load(f)
+        # with open("anno3d2.pkl", 'rb') as f:
+        #     self.PVRCNN_result = pickle.load(f)
         self.add_result()
         for frame in self.updated_result:
             for gt_frame in self.gt_data:
