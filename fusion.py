@@ -573,7 +573,7 @@ class Fusion(object):
             dz = np.max(seg_cluster[:][:, 2]) - np.min(seg_cluster[:][:, 2])
             ratio=dy/dx
 
-            if ratio<0.35:            ##Plane
+            if ratio<0.4:            ##Plane
                 return None,None,None
             elif dy<0.25 or dx<0.25:  ## Column
                 return None,None,None
