@@ -76,7 +76,7 @@ def boxes_to_corners_3d(boxes3d):
 
 
 if __name__ == "__main__":
-    frame_idx=1
+    frame_idx=2
     dirpath = "./data/waymo/waymo_infos_val.pkl"
     lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5], [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
     fusion_color = [[0, 1, 0] for i in range(len(lines))]
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         groudTruth_boxes.append(box3d)
     ############################################
 
-    with open("anno3d.pkl", 'rb') as f:
+    with open("annos3d.pkl", 'rb') as f:
         annos3d = pickle.load(f)
     with open("frustum.pkl", 'rb') as f:
         frustum = pickle.load(f)
@@ -167,7 +167,7 @@ if __name__ == "__main__":
             boxes.append(box3d)
             pcd=o3d.geometry.PointCloud()
             pcd.points=o3d.utility.Vector3dVector(seg["seg"])
-            pcd.paint_uniform_color([np.random.rand() , np.random.rand() , 0])
+            pcd.paint_uniform_color([0.5 , 0.5 , 0])
             pcds.append(pcd)
             vecs=vecs+list(seg["seg"])  
     box = make_3dBox(annos3d[frame_idx])

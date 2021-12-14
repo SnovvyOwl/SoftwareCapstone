@@ -453,7 +453,7 @@ class Fusion(object):
                             break
             if found is False:
                 if frustum["centroid"] is not None:
-                    gen_box,gen_seg,gen_PVRCNNbox= self.make_3d_box(cp_xyz[frustum["large_frustum"]], frustum["centroid"],frustum["large_frustum"])
+                    gen_box,gen_seg,gen_PVRCNNbox= self.make_3d_box(cp_xyz[frustum["large_frustum"]], frustum["centroid"],frustum["large_frustum"],frustum["label"])
                     if gen_box is not None:
                         frustum_per_onescene[i]["3d_box"]=gen_box
                         frustum_per_onescene[i]["seg"]=gen_seg
@@ -509,7 +509,7 @@ class Fusion(object):
         else:
             return None
 
-    def make_3d_box(self, frustum_point, centroid_point, frustum_idx):
+    def make_3d_box(self, frustum_point, centroid_point, frustum_idx,name):
         """
             DO: Make 3D box from Segmentation Result
             INPUT: Frustum_point = 10% Large Frustum point [x,y,z] 
@@ -579,9 +579,11 @@ class Fusion(object):
                 return None,None,None
             elif dy<0.25 or dx<0.25:  ## Column
                 return None,None,None
-            elif (center_z-dz/2)>1: ## is UPPER
-                return None,None,None
+            
             else:
+                if name!="Sign":
+                    if (center_z-dz/2)>1: ## is UPPER
+                        return None,None,None
                 # Result Form PV-RCNN
                 res = np.array([center_x, center_y, center_z, dx, dy, dz,-heading])
 
