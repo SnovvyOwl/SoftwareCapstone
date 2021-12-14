@@ -487,7 +487,7 @@ class Fusion(object):
         if len(match) > 1:
             match = np.array([self.find_max(match, mat)])
         if len(match) != 0:
-            if mat[0, int(match)] > 0.7:
+            if mat[0, int(match)] > 0.65:
                 return PVRCNN_boxes[match]
             else:
           
