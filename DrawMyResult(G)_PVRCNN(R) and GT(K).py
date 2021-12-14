@@ -76,7 +76,7 @@ def boxes_to_corners_3d(boxes3d):
 
 
 if __name__ == "__main__":
-    frame_idx=39
+    frame_idx=73
     dirpath = "./data/waymo/waymo_infos_val.pkl"
     lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5], [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
     fusion_color = [[0, 1, 0] for i in range(len(lines))]
@@ -95,15 +95,15 @@ if __name__ == "__main__":
         groudTruth_boxes.append(box3d)
     ############################################
 
-    with open("anno3d.pkl", 'rb') as f:
+    with open("anno3d2.pkl", 'rb') as f:
         annos3d = pickle.load(f)
-    with open("frustum.pkl", 'rb') as f:
+    with open("frustum2.pkl", 'rb') as f:
         frustum = pickle.load(f)
 
     lidar_idx = str(5 * frame_idx).zfill(4)
-    # print(lidar_idx)
+    print(annos3d[frame_idx]["frame_id"][:-4]+"/0" + annos3d[frame_idx]["frame_id"][-3:] + ".npy")
     xyz = np.load(
-        "/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/segment-1024360143612057520_3580_000_3600_000_with_camera_labels/" + lidar_idx + ".npy")
+        "/home/seongwon/SoftwareCapstone/data/waymo/waymo_processed_data/"+annos3d[frame_idx]["frame_id"][:-4]+"/0" + annos3d[frame_idx]["frame_id"][-3:] + ".npy")
     xyz = xyz[:, :3]
 
     segs = []
