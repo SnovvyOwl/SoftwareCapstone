@@ -206,7 +206,7 @@ if __name__ == "__main__":
     ckpt = "./checkpoints/checkpoint_epoch_30.pth"
     test = ModelManager(root, ckpt)
     a, b = test.val()
-    with open("anno3d.pkl", 'wb') as f:
+    with open("anno3d2.pkl", 'wb') as f:
         pickle.dump(a, f)
-    with open("anno2d.pkl", 'wb') as f:
+    with open("anno2d2.pkl", 'wb') as f:
         pickle.dump(b, f)

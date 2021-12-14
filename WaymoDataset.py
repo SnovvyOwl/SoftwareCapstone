@@ -37,13 +37,13 @@ class Camera(torch.utils.data.Dataset):  # 카메라하나당 하나씩
                 obj_ids.append(4)
         # image_id = torch.tensor(self.imgs[idx])
         labels = torch.as_tensor(obj_ids, dtype=torch.int64)
-        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        # area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
         iscrowd = torch.zeros(len(obj_ids, ), dtype=torch.int64)
         target = {}
         target["boxes"] = boxes
         target["labels"] = labels
         target["image_id"] = self.imgs[idx]
-        target["area"] = area
+        # target["area"] = area
         target["iscrowd"] = iscrowd
         target["camera"] = self.camera
 
@@ -65,11 +65,11 @@ class Waymo2DLoader(torch.utils.data.Dataset):
         self.length = len(os.listdir(self.root + segment + '/')) - 2
         self.intrinsic, self.disorted_coeff = self.make_intrinsic_mat(np.load(img_path + "intrinsic.npy"))
         front_anno, front_left_anno, front_right_anno, side_left_anno, side_right_anno = self.get_annotation()
-        self.FRONT = Camera(img_path, imgs[:self.length], front_anno, "FRONT")
-        self.FRONT_LEFT = Camera(img_path, imgs[self.length:self.length * 2], front_left_anno, "FRONT_LEFT")
-        self.FRONT_RIGHT = Camera(img_path, imgs[self.length * 2:self.length * 3], front_right_anno, "FRONT_RIGHT")
-        self.SIDE_LEFT = Camera(img_path, imgs[self.length * 3:self.length * 4], side_left_anno, "SIDE_LEFT")
-        self.SIDE_RIGHT = Camera(img_path, imgs[self.length * 4:], side_right_anno, "SIDE_RIGHT")
+        self.FRONT = Camera(img_path, imgs[1:self.length+1], front_anno, "FRONT")
+        self.FRONT_LEFT = Camera(img_path, imgs[self.length+1:self.length * 2+1], front_left_anno, "FRONT_LEFT")
+        self.FRONT_RIGHT = Camera(img_path, imgs[self.length * 2+1:self.length * 3+1], front_right_anno, "FRONT_RIGHT")
+        self.SIDE_LEFT = Camera(img_path, imgs[self.length * 3+1:self.length * 4+1], side_left_anno, "SIDE_LEFT")
+        self.SIDE_RIGHT = Camera(img_path, imgs[self.length * 4+1:], side_right_anno, "SIDE_RIGHT")
 
     def get_annotation(self):
         front_anno = []
@@ -156,6 +156,7 @@ class Waymo3DLoader(torch.utils.data.Dataset):
 
 if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"
+    # sequece='segment-18331704533904883545_1560_000_1580_000_with_camera_labels'
     sequece = 'segment-1024360143612057520_3580_000_3600_000_with_camera_labels'
     test = Waymo2DLoader(root, sequece)
     print(test.__getitem__(5))

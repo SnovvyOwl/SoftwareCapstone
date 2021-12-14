@@ -131,11 +131,11 @@ class Fusion(object):
         return extrinscis
 
     def main(self):
-        # annos3d, annos2d = self.val.val() # model 
-        with open("anno3d.pkl", 'rb') as f:
-            annos3d = pickle.load(f)
-        with open("anno2d.pkl", 'rb') as f:
-            annos2d = pickle.load(f)
+        annos3d, annos2d = self.val.val() # model 
+        # with open("anno3d.pkl", 'rb') as f:
+        #     annos3d = pickle.load(f)
+        # with open("anno2d.pkl", 'rb') as f:
+        #     annos2d = pickle.load(f)
         sequence = annos2d[0]["frame_id"][0][0:-4]
         self.current_intrinsics = annos2d[0]["intrinsic"]
         self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
@@ -145,7 +145,7 @@ class Fusion(object):
             if annos2d[i]["frame_id"][0][0:-4] != sequence:
                 self.current_intrinsics = annos2d[i]["intrinsic"]
                 self.current_extrinsics = self.make_extrinsic_mat(annos2d[i]["extrinsic"])
-                annos2d[i]["frame_id"][0][0:-4] = sequence
+                sequence=annos2d[i]["frame_id"][0][0:-4] 
             xyz = np.load(self.root + sequence + '/0' + annos2d[i]["frame_id"][0][-3:] + ".npy")[:, :3]
             point_planes = self.pointcloud2image(xyz)
             frustum_for_onescene = self.make_frustum(annos2d[i]["anno"], xyz, point_planes)
@@ -156,7 +156,7 @@ class Fusion(object):
             img3d["frame_id"] = sequence + '_' + annos2d[i]["frame_id"][0][-3:]
             img3d["filename"] = annos2d[i]["image_id"]
             result.append(img3d)
-        with open("frustum.pkl", 'wb') as f:
+        with open("frustum2.pkl", 'wb') as f:
             pickle.dump(result, f)
         return result, annos3d
 

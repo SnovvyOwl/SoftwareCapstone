@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from fusion import Fusion
 from PVRCNN.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu
+import matplotlib.pyplot as plt
 
 
 class AveragePrecision(object):
@@ -27,12 +28,23 @@ class AveragePrecision(object):
     def get_AP(self):
         coffindence = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0]
         pre_recall = 0
+        precisions=[]
+        recalls=[]
+        pre_precision=0
         for cs in coffindence:
-            current = np.where(self.true_positive[:, 0] > cs)[0]
-            recall = len(np.where(self.true_positive[current, 1] == 1.0)[0]) / self.gt_len
-            precision = len(np.where(self.true_positive[current, 1] == 1.0)[0]) / len(current)
-            self.ap += (recall - pre_recall) * precision
-            pre_recall = recall
+            current = np.where(self.true_positive[:, 2] > cs)[0]
+            if len(current)!=0:
+                recall = len(np.where(self.true_positive[current, 1] == 1.0)[0]) / self.gt_len
+                precision = len(np.where(self.true_positive[current, 1] == 1.0)[0]) / len(current)
+            
+                self.ap += abs((recall - pre_recall)) * max(precision,pre_precision)
+                pre_precision=precision
+                pre_recall = recall
+                precisions.append(precision)
+                recalls.append(recall)
+        plt.title(self.name)
+        plt.plot(recalls,precisions)
+        plt.savefig(self.name+".png")
         return self.ap
 
 
@@ -46,13 +58,13 @@ class Inference(object):
         self.PVRCNN_result = None
         self.result_of_fusion = None
         self.updated_result = []
-        self.pedestrianAP = AveragePrecision("Pedestrian")
-        self.vehicleAP = AveragePrecision("Vehicle")
-        self.cyclistAP = AveragePrecision("Cyclist")
-        # self.fusion=Fusion(root,ckptdir)
-        self.PVRCNN_pedestrianAP = AveragePrecision("Pedestrian")
-        self.PVRCNN_vehicleAP = AveragePrecision("Vehicle")
-        self.PVRCNN_cyclistAP = AveragePrecision("Cyclist")
+        self.pedestrianAP = AveragePrecision("OUR_RESRULT_Pedestrian")
+        self.vehicleAP = AveragePrecision("OUR_RESRULT_Vehicle")
+        self.cyclistAP = AveragePrecision("OUR_RESRULT_Cyclist")
+        self.fusion=Fusion(root,ckptdir)
+        self.PVRCNN_pedestrianAP = AveragePrecision("PV_RCNN_Pedestrian")
+        self.PVRCNN_vehicleAP = AveragePrecision("PV_RCNN_Vehicle")
+        self.PVRCNN_cyclistAP = AveragePrecision("PV_RCNN_Cyclist")
 
     def load_ground_truth_data(self):
         dirpath = "./data/waymo/waymo_infos_val.pkl"
@@ -65,7 +77,7 @@ class Inference(object):
 
     def main(self):
         self.load_ground_truth_data()
-        # self.result_of_fusion,self.PVRCNN_result= self.fusion.main()
+        self.result_of_fusion,self.PVRCNN_result= self.fusion.main()
         # self.PVRCNN_result=annos3d
         with open("frustum.pkl", 'rb') as f:
             self.result_of_fusion = pickle.load(f)
@@ -86,8 +98,8 @@ class Inference(object):
                     iou_mat = np.delete(iou_mat, sign_idx, axis=0)
                     gt_name = np.delete(gt_frame["annos"]["name"], sign_idx, axis=0)
                     self.match_correction(gt_name, frame["name"], iou_mat, frame["score"])
-
                     break
+
         for frame in self.PVRCNN_result:
             for gt_frame in self.gt_data:
                 if frame["frame_id"] == gt_frame["frame_id"]:
@@ -116,8 +128,8 @@ class Inference(object):
         print("CYCLIST: {0} ".format(self.PVRCNN_cyclistAP.get_AP()))
         print("**************************************************************")
 
-    def PVRCNN_correction(self, _gt_name, _frame_name, _iou_mat, score, ped_threshold=0.5, vec_threshold=0.55,
-                          cyc_threshold=0.5):
+    def PVRCNN_correction(self, _gt_name, _frame_name, _iou_mat, score, ped_threshold=0.35, vec_threshold=0.4,
+                          cyc_threshold=0.35):
         iou_mat = _iou_mat.T
         for i, name in enumerate(_frame_name):
             if name == "Pedestrian":
@@ -172,7 +184,7 @@ class Inference(object):
         self.PVRCNN_vehicleAP.frame_add(len(np.where(_gt_name == "Vehicle")[0]),len(np.where(_frame_name == "Vehicle")[0]))
         self.PVRCNN_cyclistAP.frame_add(len(np.where(_gt_name == "Cyclist")[0]),len(np.where(_frame_name == "Cyclist")[0]))
 
-    def match_correction(self, gt_name, frame_name, _iou_mat, score, ped_threshold=0.5, vec_threshold=0.55,cyc_threshold=0.5):
+    def match_correction(self, gt_name, frame_name, _iou_mat, score, ped_threshold=0.35, vec_threshold=0.4,cyc_threshold=0.3):
         iou_mat = _iou_mat.T
         for i, name in enumerate(frame_name):
             if name == "Pedestrian":
@@ -244,6 +256,7 @@ class Inference(object):
                             if frustum["label"] != "Sign":
                                 update_frame["name"] = np.append(update_frame["name"], frustum["label"])
                                 update_frame["score"] = np.append(update_frame["score"], frustum["score"].cpu().numpy())
+                                # update_frame["score"] = np.append(update_frame["score"], np.array([0.7]))
                                 update_frame["boxes_lidar"] = np.vstack(
                                     (update_frame["boxes_lidar"], frustum["PVRCNN_Formed_Box"].astype("float32")))
 
