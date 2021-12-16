@@ -25,3 +25,6 @@ python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_f
 
 PVRCNN test
 python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
+
+
+Structure
