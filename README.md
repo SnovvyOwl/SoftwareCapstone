@@ -15,7 +15,7 @@ Department of Software Convergence.
 [Dependency]\
 [PV-RCNN](https://github.com/open-mmlab/OpenPCDet)\
 [Faster-RCNN(pytorch)](https://pytorch.org/) \
-[Spconv](https://github.com/traveller59/spconv)
+[Spconv](https://github.com/traveller59/spconv)\
 [opend3D](http://www.open3d.org/)
 
 ## Build
