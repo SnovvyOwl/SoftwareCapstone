@@ -16,6 +16,7 @@ Department of Software Convergence.
 [PV-RCNN](https://github.com/open-mmlab/OpenPCDet)\
 [Faster-RCNN(pytorch)](https://pytorch.org/) \
 [Spconv](https://github.com/traveller59/spconv)
+[opend3D](http://www.open3d.org/)
 
 ## Build
 ```dotnetcli
@@ -39,7 +40,7 @@ python3 inference.py
 ```
 
 ## Visualization
-i를 원하는 프래임번호로 바꿔서 사용\
+i를 원하는 프래임번호로 바꿔서 사용
 ```dotnetcli
 python3 DrawMyResult(G)_PVRCNN(R) and GT(K).py
 ```
