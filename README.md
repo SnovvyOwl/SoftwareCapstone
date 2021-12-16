@@ -36,13 +36,10 @@ python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch
 
 PVRCNN 에 비해서 AP가 0.3%정도 증가했다.
 
+자동차나 오토바이를 인식하는 부분에서는 기존의 방법과 큰 차이가 없었으나  보행자의 경우에서는 성능향상이 있었다. 
+또한 새로 검출된 보행자들 중에는 자율주행차량과 가까이 있을 경우도 있었고, 이는 인사사고의 가능성을 조금이라도 더 줄였다는 것을 의미한다.
 
-![Myresult_Generated](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/segboxresult.png)
-
-이 사진과 같이 사람과 차량의 거리가 매우 가까움에도 기존의 PV-RCNN은 검출하지 못하였고 
-카메라와의 센서퓨전을 통한 나의 결과로 이 프레임에서 2명의 사람을 추가로 검출할수 있었다.
-
-이는 자율주행의 인사사고 확률을 조금이라도 낮출수 있다.
+Waymo의 Sign class에 Ground Truth 해당 하지 않는 신호등도 검출을 할 수 있었다. 신호등을  검출했다는 것은 주변에 교차로가 있는지 횡단보도가 있는지 판단 할 수 있는 근거가 된다.
 
 ## Future Work
 하지만 증가률이 낮은것은 사용한 Dataset이 Waymo인데 카메라가 후방에는 존재하지 않아서 전체를 커버하지 못하였기 때문이라고 생각한다.
