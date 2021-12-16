@@ -27,12 +27,15 @@ python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_f
 python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
 
 ## Resource
-3D Object Detection: PV-RCNN (mmlab)
-2D Object Detection: Faster R-CNN (pytorch)
+3D Object Detection: PV-RCNN (mmlab)\
+2D Object Detection: Faster R-CNN (pytorch)\
 Waymo Google Dataset
 
 ## Project Explanation
-
+실제로 많은 Lidar 기반 3D Object Detection에서 차량이 70프로가 넘는 경우가 많은데 비해 보행자에 대한 인식률은 60프로 미만으로 떨어진다.\
+가장 검출 성능이 좋은 PV-RCNN을 직접 훈련 시켜서 결과를 한번 보았는데 가까이 있는 보행자들도 검출해내지 못했다.\
+보행자를 검출하지 못한다면 자율주행사고 발생위험이 높아지고 인명의 피해가 발생할 수 있다는 것을 이야기한다.\
+그래서 기존의 2D Image에서 2D Object Detection으로 예측한 결과와 PV-RCNN 결과를 합쳐서 이것을 해결해보려고한다.
 
 ## Structure
 ![CodeStructure](https://github.com/SnovvyOwl/Transparent_DepthEstimation/blob/main/DevelopmentLogs/codestruct.png)
