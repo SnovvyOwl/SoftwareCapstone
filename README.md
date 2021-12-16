@@ -41,7 +41,7 @@ Waymo Google Dataset
 그래서 기존의 2D Image에서 2D Object Detection으로 예측한 결과와 PV-RCNN 결과를 합쳐서 이것을 해결해보려고한다.
 
 ## Structure
-![CodeStructure](https://github.com/SnovvyOwl/Transparent_DepthEstimation/blob/main/doc/structure.png)
+![CodeStructure](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/structure.png)
 
 
 ## Result
