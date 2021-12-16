@@ -18,7 +18,9 @@ Department of Software Convergence.
 [Spconv](https://github.com/traveller59/spconv)
 
 ## Build
-```python3 PVRCNN/setup.py build```
+```dotnetcli
+python3 PVRCNN/setup.py build
+```
 
 ## Waymo Dataset Preprocess
 ```dotnetcli
@@ -32,7 +34,7 @@ python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch
 ```
 
 ## RUN MY Code
-``dotnetcli
+```dotnetcli
 python3 inference.py
 ```
 
