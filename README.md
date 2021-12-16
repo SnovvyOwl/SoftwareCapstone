@@ -68,7 +68,7 @@ DrawMyResult(G)_PVRCNN(R) and GT(K).py: 이렇게 만들어진 결과를 보여�
 ## Result
 ![Result](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/result.png)
 
-PVRCNN 에 비해서 AP가 0.3%정도 증가했다.
+PVRCNN 에 비해서 보행자의 AP가 0.3%정도 증가했다.
 
 자동차나 오토바이를 인식하는 부분에서는 기존의 방법과 큰 차이가 없었으나  보행자의 경우에서는 성능향상이 있었다. 
 또한 새로 검출된 보행자들 중에는 자율주행차량과 가까이 있을 경우도 있었고, 이는 인사사고의 가능성을 조금이라도 더 줄였다는 것을 의미한다.
