@@ -38,6 +38,12 @@ python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch
 python3 inference.py
 ```
 
+## Visualization
+i를 원하는 프래임번호로 바꿔서 사용\
+```dotnetcli
+python3 DrawMyResult(G)_PVRCNN(R) and GT(K).py
+```
+
 ## Resource
 3D Object Detection: PV-RCNN (mmlab)\
 2D Object Detection: Faster R-CNN (pytorch)\
@@ -51,6 +57,11 @@ Waymo Google Dataset
 
 ## Structure
 ![CodeStructure](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/structure.png)
+WaymoDataset.py: 전처리된 데이터셋에서 이미지 파일을 모델매니저로 로드 해주는 역할\
+modelmanager.py:  PV-RCNN과 Faster R-CNN의 모델로 결과를 예측하는 역할\
+fusion.py:  각각 예측값을 합쳐주는 역할 \
+inferece.py: 그리고 실제 PV-RCNN과 나온 결과를 비교해주는 역할\
+DrawMyResult(G)_PVRCNN(R) and GT(K).py: 이렇게 만들어진 결과를 보여주는 Visualization해주는 역할
 
 
 ## Result
