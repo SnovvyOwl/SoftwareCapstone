@@ -21,13 +21,20 @@ Department of Software Convergence.
 ```python3 PVRCNN/setup.py build```
 
 ## Waymo Dataset Preprocess
-```python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_file PVRCNN/tools/cfgs/dataset_configs/waymo_dataset.yaml```
+```dotnetcli
+python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_file PVRCNN/tools/cfgs/dataset_configs/waymo_dataset.yaml
+```
+
 
 ## PVRCNN test
-```python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]```
+```dotnetcli
+python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
+```
 
 ## RUN MY Code
-```python3 inference.py```
+``dotnetcli
+python3 inference.py
+```
 
 ## Resource
 3D Object Detection: PV-RCNN (mmlab)\
