@@ -14,17 +14,17 @@ Department of Software Convergence.
 
 [Dependency]\
 [PV-RCNN](https://github.com/open-mmlab/OpenPCDet)\
-[Faster-RCNN](https://github.com/open-mmlab/mmdetection)
+[Faster-RCNN<pytorch>](https://pytorch.org/)
 [Spconv](https://github.com/traveller59/spconv)
 
 ## Build
-python3 PVRCNN/setup.py build
+```python3 PVRCNN/setup.py build```
 
 ## Waymo Dataset Preprocess
-python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_file PVRCNN/tools/cfgs/dataset_configs/waymo_dataset.yaml
+```python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_file PVRCNN/tools/cfgs/dataset_configs/waymo_dataset.yaml```
 
 ## PVRCNN test
-python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
+```python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]```
 
 ## Resource
 3D Object Detection: PV-RCNN (mmlab)\
@@ -38,7 +38,7 @@ Waymo Google Dataset
 그래서 기존의 2D Image에서 2D Object Detection으로 예측한 결과와 PV-RCNN 결과를 합쳐서 이것을 해결해보려고한다.
 
 ## Structure
-![CodeStructure](https://github.com/SnovvyOwl/Transparent_DepthEstimation/blob/main/DevelopmentLogs/codestruct.png)
+![CodeStructure](https://github.com/SnovvyOwl/Transparent_DepthEstimation/blob/main/doc/structure.png)
 
 
 ## Result
