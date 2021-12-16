@@ -14,7 +14,7 @@ Department of Software Convergence.
 
 [Dependency]\
 [PV-RCNN](https://github.com/open-mmlab/OpenPCDet)\
-[Faster-RCNN<pytorch>](https://pytorch.org/)
+[Faster-RCNN(pytorch)](https://pytorch.org/) \
 [Spconv](https://github.com/traveller59/spconv)
 
 ## Build
@@ -25,6 +25,9 @@ Department of Software Convergence.
 
 ## PVRCNN test
 ```python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]```
+
+## RUN MY Code
+```python3 inference.py```
 
 ## Resource
 3D Object Detection: PV-RCNN (mmlab)\
