@@ -119,7 +119,8 @@ The IEEE 5th International Conference on Intelligent Transportation Systems, 200
 ![RESULT_IMG2](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/res2.png)
 ![RESULT_IMG3](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/res3.png)
 
-결과적으로 자율주행자동차와 가까이 있던 보행자의 검출에 성공하였다. 
+왼쪽사진은 실제 이미지이고 오른쪽은 생성된 결과를 보여준다.
+결과적으로 보행자를 추가 검출하는데에 성공했다.
 
 이를 수치화한 결과이다.
 ![Result](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/result.png)
