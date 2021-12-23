@@ -35,17 +35,24 @@ python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch
 ```
 
 ## RUN MY Code
+### Inference
 ```dotnetcli
 python3 inference.py
 ```
+inference 파일을 실행하면 이미지와 포인트 클라우드를 받아서 ModelManager를 호출한다. 여기서 데이터 셋을 받아서 2D 예측과 3D 예측을 가지고 와서 이를 fusion을 하게 된다. 여기서 만들어진 결과로 기존의 PV-RCNN결과와 비교할수 있도록 수치화하는 코드다.
 
-## Visualization
-i를 원하는 프래임번호로 바꿔서 사용
+
+### Visualization
+```if __name__ =="main":``` 
+안에 있는 i라는 변수를 원하는 프래임번호로 바꿔서 코드를 돌리면 작동한다.
 ```dotnetcli
 python3 DrawMyResult(G)_PVRCNN(R) and GT(K).py
 ```
+결과는 검정상자는 Ground Truth, 빨간상자는 PV-RCNN 결과이며, 초록 박스가 새로 예측된 박스이다.  
+결과는 WaymoDataset 라이선스 문제로 README.md에 따로 첨부하진 않겠다.
 
 ## Resource
+사용된 신경망 네트워크은 두개이다. 하나는 3D Obeject Detection
 3D Object Detection: PV-RCNN (mmlab)\
 2D Object Detection: Faster R-CNN (pytorch)\
 Waymo Google Dataset
