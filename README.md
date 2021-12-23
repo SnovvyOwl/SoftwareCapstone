@@ -12,14 +12,12 @@ Advisor:
 Prof. HyoSeok Hwang\
 Department of Software Convergence. 
 
-
-
-
 ## Resource
 사용된 신경망 네트워크은 두개이다. 하나는 3D Obeject Detection
 3D Object Detection: PV-RCNN (mmlab)\
 2D Object Detection: Faster R-CNN (pytorch)\
 Waymo Google Dataset
+ @misc{waymo_open_dataset, title = {Waymo Open Dataset: An autonomous driving dataset}, website = {\url{https://www.waymo.com/open}}, year = {2019} }
 
 ## Project Explanation
 실제로 많은 Lidar 기반 3D Object Detection에서 차량이 70프로가 넘는 경우가 많은데 비해 보행자에 대한 인식률은 60프로 미만으로 떨어진다.\
@@ -38,13 +36,35 @@ DrawMyResult(G)_PVRCNN(R) and GT(K).py: 이렇게 만들어진 결과를 보여�
 ## 주요 알고리즘 설명
 ### Calibration 
 ![Calibration](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/img.png)
-LIDAR의 좌표계와 카메라의 이미지 좌표계가 일치 하지 않기 때문에 이를 해결하기 위해서는 Calibration을 진행해야한다.\
+
+LIDAR의 좌표계와 카메라의 이미지 좌표계가 일치 하지 않기 때문에 이를 해결하기 위해서는 Calibration을 진행해야한다.
 
 ![Calibrationeqn](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/calieqn.png)
 LiDAR로 측정된 포인트들을 카메라의 extrinsic 행렬과 Intrinsic 행렬을 곱해서 이를 계산한다.
 
 
 참고 문헌: [Barbara Frank, Cyrill Stachniss, Giorgio Grisetti, Kai Arras, Wolfram Burgard. Freiburg Univ. Lecture Note Robotics 2 Camera Calibration](http://ais.informatik.uni-freiburg.de/teaching/ws10/robotics2/pdfs/rob2-10-camera-calibration.pdf)
+
+### Segmentation
+segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으며 알고리즘은 아래와 같다.
+![cluster](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/seg.png)
+1)  입력 값으로 중심 포인트 좌표들과 Frustum을 넣어준다.
+2)  중심좌표들은 Segmentation Set에 넣어준다.
+3)  중심 좌표들로부터 특정거리 이하가 되면  새로 Segmentation set에 넣어준다.
+4)  Segmentation set에 새로 넣어진 점을 기준으로 다시 계산을 해야 하므로 Queue에 추가 되는 인접 좌표를 넣어준다.
+5)  한번 Segmentation된 결과에 포함된 포인트는 다시 계산하지 않도록 제외한다.
+6)  Queue가 비어있지 않으면 Queue에서 포인트를 뽑아서 중심좌표로 선정하고 2~5를 반복한다.
+7)  Queue가 비었다는 것은 추가된 점이 없다는 것으로 Segmentation 결과를 반환해준다. 
+
+![cluster](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/center.png)
+여기서 중심점을 계산한 방법은 다음같다. 
+
+### PCA(Principal Component Analysis)
+![eqn1](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn1.png)
+![eqn2](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn2.png)
+![eqn3](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn3.png)
+![eqn4](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn4.png)
+
 
 ## Result & Conclusion
 ![Result](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/result.png)
