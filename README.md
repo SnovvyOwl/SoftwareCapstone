@@ -30,12 +30,11 @@ Department of Software Convergence.
 
 ### 3D Object Detection: PV-RCNN 
 (S. Shi et al., "PV-RCNN: Point-Voxel Feature Set Abstraction for 3D Object Detection,“
- 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 10526-10535, doi: 10.1109/CVPR42600.2020.01054.
-))\
+ 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 10526-10535, doi: 10.1109/CVPR42600.2020.01054.)
 
 ### 2D Object Detection: Faster R-CNN
-(Ren, S., He, K., Girshick, R., & Sun, J. (2015). Faster r-cnn: Towards real-time object detection with region proposal networks.Advances in neural information processing systems,28, 91-99.
-)\
+(Ren, S., He, K., Girshick, R., & Sun, J. (2015). Faster r-cnn: Towards real-time object detection with region proposal networks.Advances in neural information processing systems,28, 91-99.)
+
 ### Waymo Google Dataset
 ( P. Sun et al., "Scalability in Perception for Autonomous Driving: Waymo Open Dataset," 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 2443-2451, doi: 10.1109/CVPR42600.2020.00252.)
  @misc{waymo_open_dataset, title = {Waymo Open Dataset: An autonomous driving dataset}, website = {\url{https://www.waymo.com/open}}, year = {2019} }
