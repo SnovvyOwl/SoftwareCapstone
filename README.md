@@ -12,44 +12,8 @@ Advisor:
 Prof. HyoSeok Hwang\
 Department of Software Convergence. 
 
-[Dependency]\
-[PV-RCNN](https://github.com/open-mmlab/OpenPCDet)\
-[Faster-RCNN(pytorch)](https://pytorch.org/) \
-[Spconv](https://github.com/traveller59/spconv)\
-[opend3D](http://www.open3d.org/)
-
-## Build
-```dotnetcli
-python3 PVRCNN/setup.py build
-```
-
-## Waymo Dataset Preprocess
-```dotnetcli
-python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_file PVRCNN/tools/cfgs/dataset_configs/waymo_dataset.yaml
-```
 
 
-## PVRCNN test
-```dotnetcli
-python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
-```
-
-## RUN MY Code
-### Inference
-```dotnetcli
-python3 inference.py
-```
-inference 파일을 실행하면 이미지와 포인트 클라우드를 받아서 ModelManager를 호출한다. 여기서 데이터 셋을 받아서 2D 예측과 3D 예측을 가지고 와서 이를 fusion을 하게 된다. 여기서 만들어진 결과로 기존의 PV-RCNN결과와 비교할수 있도록 수치화하는 코드다.
-
-
-### Visualization
-```if __name__ =="main":``` 
-안에 있는 i라는 변수를 원하는 프래임번호로 바꿔서 코드를 돌리면 작동한다.
-```dotnetcli
-python3 DrawMyResult(G)_PVRCNN(R) and GT(K).py
-```
-결과는 검정상자는 Ground Truth, 빨간상자는 PV-RCNN 결과이며, 초록 박스가 새로 예측된 박스이다.  
-결과는 WaymoDataset 라이선스 문제로 README.md에 따로 첨부하진 않겠다.
 
 ## Resource
 사용된 신경망 네트워크은 두개이다. 하나는 3D Obeject Detection
@@ -86,3 +50,46 @@ Waymo의 Sign class에 Ground Truth 해당 하지 않는 신호등도 검출을 
 하지만 증가률이 낮은것은 사용한 Dataset이 Waymo인데 카메라가 후방에는 존재하지 않아서 전체를 커버하지 못하였기 때문이라고 생각한다.
 
 따라서 추후에 360도를 다찍을 수있는 카메라를 사용하여 발전을 시킬 예정이다.
+
+# HOW TO BUILD AND RUN
+
+[Dependency]\
+[PV-RCNN](https://github.com/open-mmlab/OpenPCDet)\
+[Faster-RCNN(pytorch)](https://pytorch.org/) \
+[Spconv](https://github.com/traveller59/spconv)\
+[opend3D](http://www.open3d.org/)
+
+
+# PV-RCNN Build
+## Build
+```dotnetcli
+python3 PVRCNN/setup.py build
+```
+
+## Waymo Dataset Preprocess
+```dotnetcli
+python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_file PVRCNN/tools/cfgs/dataset_configs/waymo_dataset.yaml
+```
+
+
+## PVRCNN test
+```dotnetcli
+python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
+```
+
+# HOW TO RUN MY Code
+### Inference
+```dotnetcli
+python3 inference.py
+```
+inference 파일을 실행하면 이미지와 포인트 클라우드를 받아서 ModelManager를 호출한다. 여기서 데이터 셋을 받아서 2D 예측과 3D 예측을 가지고 와서 이를 fusion을 하게 된다. 여기서 만들어진 결과로 기존의 PV-RCNN결과와 비교할수 있도록 수치화하는 코드다.
+
+
+### Visualization
+```if __name__ =="main":``` 
+안에 있는 i라는 변수를 원하는 프래임번호로 바꿔서 코드를 돌리면 작동한다.
+```dotnetcli
+python3 DrawMyResult(G)_PVRCNN(R) and GT(K).py
+```
+결과는 검정상자는 Ground Truth, 빨간상자는 PV-RCNN 결과이며, 초록 박스가 새로 예측된 박스이다.  
+결과는 WaymoDataset 라이선스 문제로 README.md에 따로 첨부하진 않겠다.
