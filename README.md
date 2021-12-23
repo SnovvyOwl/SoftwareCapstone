@@ -26,15 +26,17 @@ Department of Software Convergence.
 즉, 2D Image에서 2D Object Detection으로 예측한 결과와 Lidar의 포인트클라우드를 이용하는 PV-RCNN 결과를 합쳐서 이것을 해결해보려고한다.
 
 ## Resource
-사용된 신경망 네트워크은 두개이며 사용된 데이터 셋은 Waymo Dataset이다. 
-3D Object Detection: PV-RCNN \
+사용된 신경망 네트워크은 두개이며 사용된 데이터 셋은 Waymo Dataset이다.
+
+### 3D Object Detection: PV-RCNN 
 (S. Shi et al., "PV-RCNN: Point-Voxel Feature Set Abstraction for 3D Object Detection,“
  2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 10526-10535, doi: 10.1109/CVPR42600.2020.01054.
 ))\
-2D Object Detection: Faster R-CNN\
+
+### 2D Object Detection: Faster R-CNN
 (Ren, S., He, K., Girshick, R., & Sun, J. (2015). Faster r-cnn: Towards real-time object detection with region proposal networks.Advances in neural information processing systems,28, 91-99.
 )\
-Waymo Google Dataset\
+### Waymo Google Dataset
 ( P. Sun et al., "Scalability in Perception for Autonomous Driving: Waymo Open Dataset," 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 2443-2451, doi: 10.1109/CVPR42600.2020.00252.)
  @misc{waymo_open_dataset, title = {Waymo Open Dataset: An autonomous driving dataset}, website = {\url{https://www.waymo.com/open}}, year = {2019} }
 
@@ -70,6 +72,7 @@ LiDAR로 측정된 포인트들을 카메라의 extrinsic 행렬과 Intrinsic �
 참고 문헌: [Barbara Frank, Cyrill Stachniss, Giorgio Grisetti, Kai Arras, Wolfram Burgard. Freiburg Univ. Lecture Note Robotics 2 Camera Calibration](http://ais.informatik.uni-freiburg.de/teaching/ws10/robotics2/pdfs/rob2-10-camera-calibration.pdf)
 
 ### Segmentation
+그렇다면 위의 2D박스별 Frustum에서 실제 물체와 물체가 아닌 것을 구별(Segmentation)해야한다. 
 segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으며 알고리즘은 아래와 같다.
 ![cluster](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/seg.png)
 1)  입력 값으로 중심 포인트 좌표들과 Frustum을 넣어준다.
@@ -80,9 +83,10 @@ segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으�
 6)  Queue가 비어있지 않으면 Queue에서 포인트를 뽑아서 중심좌표로 선정하고 2~5를 반복한다.
 7)  Queue가 비었다는 것은 추가된 점이 없다는 것으로 Segmentation 결과를 반환해준다. 
 
-![cluster](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/center.png)
 
 여기서 중심점을 계산한 방법은 다음같다. 
+![center](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/center.png)
+
 1) Faster RCNN으로 생성된 박스크기에 1%크기의 작은 박스를 생성한다. 
 2)작은 박스에 포함되는 Point Cloud를 원점으로부터 가장 멀리 있는 점과 가장 가까운 점을 가지고 Segmentation을 진행한다.
 3)두 결과에서 포함하는 포인트수가 다를 경우 작은 쪽을 지운다.
@@ -91,7 +95,8 @@ segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으�
 
 
 ### PCA(Principal Component Analysis)
-3D Object Detection은 2D와 다르게 상자의 회전각도도 중요하므로  이를 알기위해 PCA를 구현하여 박스를 만들었다.
+3D Object Detection은 2D와 다르게 상자의 회전각도도 중요하다. 따라서 Segmentation 결과를 가지고 결과의 좌표축을 알 필요가 있다. 
+따라서 이를 알기위해 PCA를 구현하여 박스를 만들었다.
 
 ![eqn1](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn1.png)
 ![eqn2](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn2.png)
@@ -105,6 +110,16 @@ segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으�
 The IEEE 5th International Conference on Intelligent Transportation Systems, 2002, pp. 7-12, doi: 10.1109/ITSC.2002.1041180.
 
 ## Result & Conclusion
+### 결과 사진 
+빨간상자는 PV-R-CNN 결과이고, 검정상자는 Ground Truth 결과,초록 상자는 위의 방법으로 생성된 결과이다.
+
+![RESULT_IMG1](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/res1.png)
+![RESULT_IMG2](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/res2.png)
+![RESULT_IMG3](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/res3.png)
+
+결과적으로 자율주행자동차와 가까이 있던 보행자의 검출에 성공하였다. 
+
+이를 수치화한 결과이다.
 ![Result](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/result.png)
 
 PVRCNN 에 비해서 보행자의 AP가 0.3%정도 증가했다.
@@ -112,9 +127,8 @@ PVRCNN 에 비해서 보행자의 AP가 0.3%정도 증가했다.
 자동차나 오토바이를 인식하는 부분에서는 기존의 방법과 큰 차이가 없었으나  보행자의 경우에서는 성능향상이 있었다. 
 또한 새로 검출된 보행자들 중에는 자율주행차량과 가까이 있을 경우도 있었고, 이는 인사사고의 가능성을 조금이라도 더 줄였다는 것을 의미한다.
 
+![RESULT_IMG4](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/res4.png)
 Waymo의 Sign class에 Ground Truth 해당 하지 않는 신호등도 검출을 할 수 있었다. 신호등을  검출했다는 것은 주변에 교차로가 있는지 횡단보도가 있는지 판단 할 수 있는 근거가 된다.
-
-
 
 
 ## Future Work
