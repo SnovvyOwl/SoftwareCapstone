@@ -12,18 +12,31 @@ Advisor:
 Prof. HyoSeok Hwang\
 Department of Software Convergence. 
 
-## Resource
-사용된 신경망 네트워크은 두개이다. 하나는 3D Obeject Detection
-3D Object Detection: PV-RCNN (mmlab)\
-2D Object Detection: Faster R-CNN (pytorch)\
-Waymo Google Dataset
- @misc{waymo_open_dataset, title = {Waymo Open Dataset: An autonomous driving dataset}, website = {\url{https://www.waymo.com/open}}, year = {2019} }
-
-## Project Explanation
+## Problem
+자율 주행 자동차는 자동차 스스로 승객의 조작이 없이 운행가능한 자동차이다.\
+하지만 자동차가 스스로 운행을 하기 위해서는 주변환경을 인지하는 능력이 있어야 한다. \
+따라서 주변환경을 인지하기 위해서 여러 센서를 사용하게 되는데 그중 가장 대표적으로 Lidar를 사용한다.\
 실제로 많은 Lidar 기반 3D Object Detection에서 차량이 70프로가 넘는 경우가 많은데 비해 보행자에 대한 인식률은 60프로 미만으로 떨어진다.\
+![problem](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/problem.png)
 가장 검출 성능이 좋은 PV-RCNN을 직접 훈련 시켜서 결과를 한번 보았는데 가까이 있는 보행자들도 검출해내지 못했다.\
-보행자를 검출하지 못한다면 자율주행사고 발생위험이 높아지고 인명의 피해가 발생할 수 있다는 것을 이야기한다.\
-그래서 기존의 2D Image에서 2D Object Detection으로 예측한 결과와 PV-RCNN 결과를 합쳐서 이것을 해결해보려고한다.
+보행자를 검출하지 못한다면 자율주행사고 발생위험이 높아지고 인명의 피해가 발생할 수 있다는 것을 이야기한다.
+
+포인트클라우드를 이용한 물체 검출보다 이미지를 사용한 검출은 검출률이 높다. \
+하지만 이미지는 물체와의 거리 인식의 정확도가 라이다보다 떨어져서 라이다의 문제점과 카메라의 문제점이 상호 보완이 되기 때문에 이 두가지 센서를 퓨전하려고 한다.\
+즉, 2D Image에서 2D Object Detection으로 예측한 결과와 Lidar의 포인트클라우드를 이용하는 PV-RCNN 결과를 합쳐서 이것을 해결해보려고한다.
+
+## Resource
+사용된 신경망 네트워크은 두개이며 사용된 데이터 셋은 Waymo Dataset이다. 
+3D Object Detection: PV-RCNN \
+(S. Shi et al., "PV-RCNN: Point-Voxel Feature Set Abstraction for 3D Object Detection,“
+ 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 10526-10535, doi: 10.1109/CVPR42600.2020.01054.
+))\
+2D Object Detection: Faster R-CNN\
+(Ren, S., He, K., Girshick, R., & Sun, J. (2015). Faster r-cnn: Towards real-time object detection with region proposal networks.Advances in neural information processing systems,28, 91-99.
+)\
+Waymo Google Dataset\
+( P. Sun et al., "Scalability in Perception for Autonomous Driving: Waymo Open Dataset," 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 2443-2451, doi: 10.1109/CVPR42600.2020.00252.)
+ @misc{waymo_open_dataset, title = {Waymo Open Dataset: An autonomous driving dataset}, website = {\url{https://www.waymo.com/open}}, year = {2019} }
 
 ## Structure
 ![CodeStructure](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/structure.png)
@@ -51,7 +64,7 @@ LiDAR로 측정된 포인트들을 카메라의 extrinsic 행렬과 Intrinsic �
 #### 이미지별 Frustum
 ![CaliRESULT](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/calibration.png)
 
-### 2D BOX 별 Frustum
+#### 2D BOX 별 Frustum
 ![frustumRESULT](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/frustum2.png)
 
 참고 문헌: [Barbara Frank, Cyrill Stachniss, Giorgio Grisetti, Kai Arras, Wolfram Burgard. Freiburg Univ. Lecture Note Robotics 2 Camera Calibration](http://ais.informatik.uni-freiburg.de/teaching/ws10/robotics2/pdfs/rob2-10-camera-calibration.pdf)
