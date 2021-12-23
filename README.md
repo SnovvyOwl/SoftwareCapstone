@@ -57,13 +57,25 @@ segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으�
 7)  Queue가 비었다는 것은 추가된 점이 없다는 것으로 Segmentation 결과를 반환해준다. 
 
 ![cluster](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/center.png)
+
 여기서 중심점을 계산한 방법은 다음같다. 
+1) Faster RCNN으로 생성된 박스크기에 1%크기의 작은 박스를 생성한다. 
+2)작은 박스에 포함되는 Point Cloud를 원점으로부터 가장 멀리 있는 점과 가장 가까운 점을 가지고 Segmentation을 진행한다.
+3)두 결과에서 포함하는 포인트수가 다를 경우 작은 쪽을 지운다.
+4) 두 결과의 크기가 같고 둘의 합이 원래 센터 박스일 경우 조금 더 큰 센터박스를 생성하여 한번 더 진행한다.
+5)만약 둘의 크기가 센터박스와 같을 경우 센터박스에 포함되는 모든 포인트를 센터포인트라고 판단한다.
+
 
 ### PCA(Principal Component Analysis)
+3D Object Detection은 2D와 다르게 상자의 회전각도도 중요하므로  이를 알기위해 PCA를 구현하여 박스를 만들었다.
+
 ![eqn1](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn1.png)
 ![eqn2](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn2.png)
-![eqn3](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn3.png)
+
+공분산 행렬을 구한 후 이를 대각화한다. 
 ![eqn4](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn4.png)
+![eqn3](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn3.png)
+
 
 
 ## Result & Conclusion
