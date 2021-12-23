@@ -62,7 +62,9 @@ DrawMyResult(G)_PVRCNN(R) and GT(K).py: 이렇게 만들어진 결과를 보여�
 LIDAR의 좌표계와 카메라의 이미지 좌표계가 일치 하지 않기 때문에 이를 해결하기 위해서는 Calibration을 진행해야한다.
 
 ![Calibrationeqn](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/calieqn.png)
+
 LiDAR로 측정된 포인트들을 카메라의 extrinsic 행렬과 Intrinsic 행렬을 곱해서 이를 계산한다.
+
 #### 이미지별 Frustum
 ![CaliRESULT](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/calibration.png)
 
@@ -82,6 +84,7 @@ segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으�
 5)  한번 Segmentation된 결과에 포함된 포인트는 다시 계산하지 않도록 제외한다.
 6)  Queue가 비어있지 않으면 Queue에서 포인트를 뽑아서 중심좌표로 선정하고 2~5를 반복한다.
 7)  Queue가 비었다는 것은 추가된 점이 없다는 것으로 Segmentation 결과를 반환해준다. 
+
 
 
 여기서 중심점을 계산한 방법은 다음같다. 
