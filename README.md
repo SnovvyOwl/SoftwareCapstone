@@ -35,8 +35,14 @@ fusion.py:  각각 예측값을 합쳐주는 역할 \
 inferece.py: 그리고 실제 PV-RCNN과 나온 결과를 비교해주는 역할\
 DrawMyResult(G)_PVRCNN(R) and GT(K).py: 이렇게 만들어진 결과를 보여주는 Visualization해주는 역할
 
+## 주요 알고리즘 설명
+### Calibration 
+LIDAR의 좌표계와 카메라의 이미지 좌표계가 일치 하지 않기 때문에 이를 해결하기 위해서는 Calibration을 진행해야한다.\
+LiDAR로 측정된 포인트들을 카메라의 extrinsic 행렬과 Intrinsic 행렬을 곱해서 이를 계산한다.
 
-## Result
+ 
+
+## Result & Conclusion
 ![Result](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/result.png)
 
 PVRCNN 에 비해서 보행자의 AP가 0.3%정도 증가했다.
@@ -46,13 +52,21 @@ PVRCNN 에 비해서 보행자의 AP가 0.3%정도 증가했다.
 
 Waymo의 Sign class에 Ground Truth 해당 하지 않는 신호등도 검출을 할 수 있었다. 신호등을  검출했다는 것은 주변에 교차로가 있는지 횡단보도가 있는지 판단 할 수 있는 근거가 된다.
 
+결과사진은 WaymoDataset 라이선스 문제로 README.md에 따로 첨부하진 않겠다.
+
+
 ## Future Work
-하지만 증가률이 낮은것은 사용한 Dataset이 Waymo인데 카메라가 후방에는 존재하지 않아서 전체를 커버하지 못하였기 때문이라고 생각한다.
+1. 하지만 증가률이 낮은것은 사용한 Dataset이 Waymo인데 카메라가 후방에는 존재하지 않아서 전체를 커버하지 못하였기 때문이라고 생각한다.
 
 따라서 추후에 360도를 다찍을 수있는 카메라를 사용하여 발전을 시킬 예정이다.
 
-# HOW TO BUILD AND RUN
+2. 각각 다른 신경망 모델의 결과를 예측한것을 합쳐서 결과를 생성하는 2-Stage 방법으로 진행되어 계산 시간이 오래 걸렸다.
+    따라서 많은 데이터셋에 대해 적용하지 못한 한계점을 가진다. 
+    ->Faster R-CNN과 PV-RCNN의 구조가 비슷하므로 둘을 하나의 모델로 합칠수 있도록 하자.
 
+
+# HOW TO BUILD AND RUN
+사용된 라이브러리
 [Dependency]\
 [PV-RCNN](https://github.com/open-mmlab/OpenPCDet)\
 [Faster-RCNN(pytorch)](https://pytorch.org/) \
@@ -60,24 +74,24 @@ Waymo의 Sign class에 Ground Truth 해당 하지 않는 신호등도 검출을 
 [opend3D](http://www.open3d.org/)
 
 
-# PV-RCNN Build
-## Build
+## PV-RCNN Build
+### Build
 ```dotnetcli
 python3 PVRCNN/setup.py build
 ```
 
-## Waymo Dataset Preprocess
+### Waymo Dataset Preprocess
 ```dotnetcli
 python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_file PVRCNN/tools/cfgs/dataset_configs/waymo_dataset.yaml
 ```
 
 
-## PVRCNN test
+### PVRCNN test
 ```dotnetcli
 python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
 ```
 
-# HOW TO RUN MY Code
+## HOW TO RUN MY Code
 ### Inference
 ```dotnetcli
 python3 inference.py
@@ -92,4 +106,3 @@ inference 파일을 실행하면 이미지와 포인트 클라우드를 받아�
 python3 DrawMyResult(G)_PVRCNN(R) and GT(K).py
 ```
 결과는 검정상자는 Ground Truth, 빨간상자는 PV-RCNN 결과이며, 초록 박스가 새로 예측된 박스이다.  
-결과는 WaymoDataset 라이선스 문제로 README.md에 따로 첨부하진 않겠다.
