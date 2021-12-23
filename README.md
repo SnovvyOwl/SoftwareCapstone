@@ -29,23 +29,26 @@ Department of Software Convergence.
 사용된 신경망 네트워크은 두개이며 사용된 데이터 셋은 Waymo Dataset이다.
 
 ### 3D Object Detection: PV-RCNN 
-![FasterRCNN](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/PVRCNN.png)
 (S. Shi et al., "PV-RCNN: Point-Voxel Feature Set Abstraction for 3D Object Detection,“
  2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 10526-10535, doi: 10.1109/CVPR42600.2020.01054.)
+
+![PVRCNN](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/PVRCNN.png)
 
 PV-RCNN은 Faster R-CNN의 구조를 본딴 구조를 가지고 있으며 RoI를 만들어주는 보라색박스, feature volume에 해당하는 초록색 박스 실제 classification과 Box refinement를 하는 파란 박스로 구현되어 있다. 마지막 파란박스는 PointNet과 구조가 비슷하다. 여기서 ROI는 Voxel 기반으로 CNN을 통과시켜 Bird Eye View로 찾는것이고 
 feauture volume을 만드는데 사용된 VSA 모듈이 특징이다.
 
 ### 2D Object Detection: Faster R-CNN
-![FasterRCNN](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/fasterRCNN.png)
 (Ren, S., He, K., Girshick, R., & Sun, J. (2015). Faster r-cnn: Towards real-time object detection with region proposal networks.Advances in neural information processing systems,28, 91-99.)
+
+![FasterRCNN](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/fasterRCNN.png)
 
 Faster R-CNN은 R-CNN 계열 2-stage object detection modeld이며 R-CNN의 ROI각각 CNN 네트워크를 통과시는 것을 개량하여 하나의 이미지를 CNN에 통과시킨후 RoI pooling을하는 Fast R-CNN을 거쳐 RoI 자체도 네트워크를 만들어 결과를 만드는 것으로 개량된 네트워크이다.
 
 ### Waymo Google Dataset
-![WAYMO](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/waymo.png)
 ( P. Sun et al., "Scalability in Perception for Autonomous Driving: Waymo Open Dataset," 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2020, pp. 2443-2451, doi: 10.1109/CVPR42600.2020.00252.)
  @misc{waymo_open_dataset, title = {Waymo Open Dataset: An autonomous driving dataset}, website = {\url{https://www.waymo.com/open}}, year = {2019} }
+
+![WAYMO](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/waymo.png)
 
 Waymo는 4개의 Short Range Lidar와 1개의 Mid Range LiDAR를 사용하는 데이터 셋이며 카메라는 5개가 사용된다. 
 후방에는 이미지 센서가 없지만 프레임당 평균 포인트수가 많아서 이를 선정했다.
