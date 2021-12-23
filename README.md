@@ -34,6 +34,13 @@ inferece.py: 그리고 실제 PV-RCNN과 나온 결과를 비교해주는 역할
 DrawMyResult(G)_PVRCNN(R) and GT(K).py: 이렇게 만들어진 결과를 보여주는 Visualization해주는 역할
 
 ## 주요 알고리즘 설명
+### Frustum?
+프러스텀은  이미지 픽셀에 찍힌 빛이 있을 수 있는 공간이다. 이미지에 기록된 빛은 어디서 왔는지 방향만 알수있고 이는 사각뿔에서 꼭대기가 짤린형태라하여 절두체라고한다. 
+![Frustum](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/frustum.png)
+
+참고문헌: Y. Wei, S. Su, J. Lu and J. Zhou, "FGR: Frustum-Aware Geometric Reasoning for Weakly Supervised 3D Vehicle Detection," 
+2021 IEEE International Conference on Robotics and Automation (ICRA), 2021, pp. 4348-4354, doi: 10.1109/ICRA48506.2021.9561245.
+
 ### Calibration 
 ![Calibration](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/img.png)
 
@@ -41,7 +48,11 @@ LIDAR의 좌표계와 카메라의 이미지 좌표계가 일치 하지 않기 �
 
 ![Calibrationeqn](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/calieqn.png)
 LiDAR로 측정된 포인트들을 카메라의 extrinsic 행렬과 Intrinsic 행렬을 곱해서 이를 계산한다.
+#### 이미지별 Frustum
+![CaliRESULT](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/calibration.png)
 
+### 2D BOX 별 Frustum
+![frustumRESULT](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/frustum2.png)
 
 참고 문헌: [Barbara Frank, Cyrill Stachniss, Giorgio Grisetti, Kai Arras, Wolfram Burgard. Freiburg Univ. Lecture Note Robotics 2 Camera Calibration](http://ais.informatik.uni-freiburg.de/teaching/ws10/robotics2/pdfs/rob2-10-camera-calibration.pdf)
 
@@ -72,11 +83,13 @@ segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으�
 ![eqn1](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn1.png)
 ![eqn2](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn2.png)
 
-공분산 행렬을 구한 후 이를 대각화한다. 
+공분산 행렬을 구한 후 이를 대각화한다.
+
 ![eqn4](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn4.png)
 ![eqn3](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/eqn3.png)
 
-
+참고문헌: H. Vceraraghavan, O. Masoud and N. Papanikolopoulos, "Vision-based monitoring of intersections," Proceedings. 
+The IEEE 5th International Conference on Intelligent Transportation Systems, 2002, pp. 7-12, doi: 10.1109/ITSC.2002.1041180.
 
 ## Result & Conclusion
 ![Result](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/result.png)
@@ -88,7 +101,7 @@ PVRCNN 에 비해서 보행자의 AP가 0.3%정도 증가했다.
 
 Waymo의 Sign class에 Ground Truth 해당 하지 않는 신호등도 검출을 할 수 있었다. 신호등을  검출했다는 것은 주변에 교차로가 있는지 횡단보도가 있는지 판단 할 수 있는 근거가 된다.
 
-결과사진은 WaymoDataset 라이선스 문제로 README.md에 따로 첨부하진 않겠다.
+
 
 
 ## Future Work
