@@ -144,7 +144,7 @@ Waymo의 Sign class에 Ground Truth 해당 하지 않는 신호등도 검출을 
 
 
 # HOW TO BUILD AND RUN
-사용된 라이브러리
+
 [Dependency]\
 [PV-RCNN](https://github.com/open-mmlab/OpenPCDet)\
 [Faster-RCNN(pytorch)](https://pytorch.org/) \
