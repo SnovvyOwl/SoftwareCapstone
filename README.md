@@ -90,7 +90,9 @@ LiDAR로 측정된 포인트들을 카메라의 extrinsic 행렬과 Intrinsic �
 ### Segmentation
 그렇다면 위의 2D박스별 Frustum에서 실제 물체와 물체가 아닌 것을 구별(Segmentation)해야한다. 
 segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으며 알고리즘은 아래와 같다.
+
 ![cluster](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/seg.png)
+
 1)  입력 값으로 중심 포인트 좌표들과 Frustum을 넣어준다.
 2)  중심좌표들은 Segmentation Set에 넣어준다.
 3)  중심 좌표들로부터 특정거리 이하가 되면  새로 Segmentation set에 넣어준다.
