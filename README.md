@@ -104,6 +104,7 @@ segmetation을 위해 내가 유클리드 클러스팅을 직접구현하였으�
 
 
 여기서 중심점을 계산한 방법은 다음같다. 
+
 ![center](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/center.png)
 
 1) Faster RCNN으로 생성된 박스크기에 1%크기의 작은 박스를 생성한다. 
