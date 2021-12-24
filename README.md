@@ -18,6 +18,7 @@ Department of Software Convergence.
 따라서 주변환경을 인지하기 위해서 여러 센서를 사용하게 되는데 그중 가장 대표적으로 Lidar를 사용한다.\
 실제로 많은 Lidar 기반 3D Object Detection에서 차량이 70프로가 넘는 경우가 많은데 비해 보행자에 대한 인식률은 60프로 미만으로 떨어진다.\
 ![problem](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/problem.png)
+
 가장 검출 성능이 좋은 PV-RCNN을 직접 훈련 시켜서 결과를 한번 보았는데 가까이 있는 보행자들도 검출해내지 못했다.\
 보행자를 검출하지 못한다면 자율주행사고 발생위험이 높아지고 인명의 피해가 발생할 수 있다는 것을 이야기한다.
 
