@@ -139,6 +139,8 @@ The IEEE 5th International Conference on Intelligent Transportation Systems, 200
 
 왼쪽사진은 실제 이미지이고 오른쪽은 생성된 결과를 보여준다.
 결과적으로 보행자를 추가 검출하는데에 성공했다.
+1번과 2번은 가까운 사람을 검출한것이고 3번사진은 상대적으로 멀어서 포인트가 적은 사람을 추가 검출한 것이다.
+
 
 이를 수치화한 결과이다.
 ![Result](https://github.com/SnovvyOwl/SoftwareCapstone/blob/main/doc/result.png)
