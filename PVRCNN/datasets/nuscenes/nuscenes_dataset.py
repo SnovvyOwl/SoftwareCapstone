@@ -1,3 +1,4 @@
+from cmath import inf
 import copy
 import pickle
 from pathlib import Path
@@ -5,9 +6,9 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from ...ops.roiaware_pool3d import roiaware_pool3d_utils
-from ...utils import common_utils
-from ..dataset import DatasetTemplate
+from PVRCNN.ops.roiaware_pool3d import roiaware_pool3d_utils
+from PVRCNN.utils import common_utils
+from PVRCNN.datasets  import DatasetTemplate
 
 
 class NuScenesDataset(DatasetTemplate):
@@ -23,8 +24,7 @@ class NuScenesDataset(DatasetTemplate):
 
     def include_nuscenes_data(self, mode):
         self.logger.info('Loading NuScenes dataset')
-        nuscenes_infos = []
-
+        nuscenes_infos = [] 
         for info_path in self.dataset_cfg.INFO_PATH[mode]:
             info_path = self.root_path / info_path
             if not info_path.exists():
@@ -32,7 +32,6 @@ class NuScenesDataset(DatasetTemplate):
             with open(info_path, 'rb') as f:
                 infos = pickle.load(f)
                 nuscenes_infos.extend(infos)
-
         self.infos.extend(nuscenes_infos)
         self.logger.info('Total samples for NuScenes dataset: %d' % (len(nuscenes_infos)))
 
@@ -299,7 +298,7 @@ class NuScenesDataset(DatasetTemplate):
 def create_nuscenes_info(version, data_path, save_path, max_sweeps=10):
     from nuscenes.nuscenes import NuScenes
     from nuscenes.utils import splits
-    from . import nuscenes_utils
+    from PVRCNN.datasets.nuscenes import nuscenes_utils
     data_path = data_path / version
     save_path = save_path / version
 
@@ -356,7 +355,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.func == 'create_nuscenes_infos':
-        dataset_cfg = EasyDict(yaml.load(open(args.cfg_file)))
+        dataset_cfg = EasyDict(yaml.safe_load(open(args.cfg_file)))
         ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
         dataset_cfg.VERSION = args.version
         create_nuscenes_info(

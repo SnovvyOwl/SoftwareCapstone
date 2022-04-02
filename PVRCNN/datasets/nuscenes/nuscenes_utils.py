@@ -6,37 +6,61 @@ https://github.com/traveller59/second.pytorch and https://github.com/poodarchu/D
 import operator
 from functools import reduce
 from pathlib import Path
+from pydoc import classname
 
 import numpy as np
 import tqdm
 from nuscenes.utils.data_classes import Box
 from nuscenes.utils.geometry_utils import transform_matrix
 from pyquaternion import Quaternion
-
+from nuscenes.utils.data_classes import LidarPointCloud,RadarPointCloud
 map_name_from_general_to_detection = {
-    'human.pedestrian.adult': 'pedestrian',
-    'human.pedestrian.child': 'pedestrian',
-    'human.pedestrian.wheelchair': 'ignore',
-    'human.pedestrian.stroller': 'ignore',
-    'human.pedestrian.personal_mobility': 'ignore',
-    'human.pedestrian.police_officer': 'pedestrian',
-    'human.pedestrian.construction_worker': 'pedestrian',
-    'animal': 'ignore',
-    'vehicle.car': 'car',
-    'vehicle.motorcycle': 'motorcycle',
-    'vehicle.bicycle': 'bicycle',
-    'vehicle.bus.bendy': 'bus',
-    'vehicle.bus.rigid': 'bus',
-    'vehicle.truck': 'truck',
-    'vehicle.construction': 'construction_vehicle',
-    'vehicle.emergency.ambulance': 'ignore',
-    'vehicle.emergency.police': 'ignore',
-    'vehicle.trailer': 'trailer',
-    'movable_object.barrier': 'barrier',
-    'movable_object.trafficcone': 'traffic_cone',
-    'movable_object.pushable_pullable': 'ignore',
-    'movable_object.debris': 'ignore',
-    'static_object.bicycle_rack': 'ignore',
+    'human.pedestrian.adult': 'Pedestrian',
+    'human.pedestrian.child': 'Pedestrian',
+    'human.pedestrian.wheelchair': 'Unknown',
+    'human.pedestrian.stroller': 'Unknown',
+    'human.pedestrian.personal_mobility': 'Unknown',
+    'human.pedestrian.police_officer': 'Pedestrian',
+    'human.pedestrian.construction_worker': 'Pedestrian',
+    'animal': 'Unknown',
+    'vehicle.car': 'Vehicle',
+    'vehicle.motorcycle': 'Cyclist',
+    'vehicle.bicycle': 'Cyclist',
+    'vehicle.bus.bendy': 'Vehicle',
+    'vehicle.bus.rigid': 'Vehicle',
+    'vehicle.truck': 'Vehicle',
+    'vehicle.construction': 'Vehicle',
+    'vehicle.emergency.ambulance': 'Vehicle',
+    'vehicle.emergency.police': 'Vehicle',
+    'vehicle.trailer': 'Vehicle',
+    'movable_object.barrier': 'Unknown',
+    'movable_object.trafficcone': 'Unknown',
+    'movable_object.pushable_pullable': 'Unknown',
+    'movable_object.debris': 'Unknown',
+    'static_object.bicycle_rack': 'Unknown',
+    # 'human.pedestrian.adult': 'pedestrian',
+    # 'human.pedestrian.child': 'pedestrian',
+    # 'human.pedestrian.wheelchair': 'ignore',
+    # 'human.pedestrian.stroller': 'ignore',
+    # 'human.pedestrian.personal_mobility': 'ignore',
+    # 'human.pedestrian.police_officer': 'pedestrian',
+    # 'human.pedestrian.construction_worker': 'pedestrian',
+    # 'animal': 'ignore',
+    # 'vehicle.car': 'car',
+    # 'vehicle.motorcycle': 'motorcycle',
+    # 'vehicle.bicycle': 'bicycle',
+    # 'vehicle.bus.bendy': 'bus',
+    # 'vehicle.bus.rigid': 'bus',
+    # 'vehicle.truck': 'truck',
+    # 'vehicle.construction': 'construction_vehicle',
+    # 'vehicle.emergency.ambulance': 'ignore',
+    # 'vehicle.emergency.police': 'ignore',
+    # 'vehicle.trailer': 'trailer',
+    # 'movable_object.barrier': 'barrier',
+    # 'movable_object.trafficcone': 'traffic_cone',
+    # 'movable_object.pushable_pullable': 'ignore',
+    # 'movable_object.debris': 'ignore',
+    # 'static_object.bicycle_rack': 'ignore',
 }
 
 
@@ -266,10 +290,24 @@ def fill_trainval_infos(data_path, nusc, train_scenes, val_scenes, test=False, m
         ref_pose_rec = nusc.get('ego_pose', ref_sd_rec['ego_pose_token'])
         ref_time = 1e-6 * ref_sd_rec['timestamp']
 
-        ref_lidar_path, ref_boxes, _ = get_sample_data(nusc, ref_sd_token)
+        ref_lidar_path, ref_boxes,_ = get_sample_data(nusc, ref_sd_token)
 
-        ref_cam_front_token = sample['data']['CAM_FRONT']
-        ref_cam_path, _, ref_cam_intrinsic = nusc.get_sample_data(ref_cam_front_token)
+        ###### MODIFIED BY SNOVVYOWL
+        CAM_LIST=['CAM_FRONT','CAM_FRONT_RIGHT','CAM_FRONT_LEFT','CAM_BACK','CAM_BACK_RIGHT','CAM_BACK_LEFT']
+        ref_cam_tokens = []
+        ref_cam_paths=[]
+        ref_cam_intrinsics=[]
+        ref_cam_extrinsics=[]
+        for cam_name in CAM_LIST:
+            ref_cam_token=sample['data'][cam_name]
+            ref_sd_cam = nusc.get('sample_data', ref_cam_token)
+            ref_cs_cam = nusc.get('calibrated_sensor', ref_sd_cam['calibrated_sensor_token'])
+            ref_cam_extrinsic=transform_matrix( ref_cs_cam['translation'], Quaternion(ref_cs_cam['rotation']), inverse=True)
+            ref_cam_path, _, ref_cam_intrinsic = nusc.get_sample_data(ref_cam_token)
+            ref_cam_tokens.append(ref_cam_token)
+            ref_cam_paths.append(ref_cam_path)
+            ref_cam_intrinsics.append(ref_cam_intrinsic)
+            ref_cam_extrinsics.append(ref_cam_extrinsic)
 
         # Homogeneous transform from ego car frame to reference frame
         ref_from_car = transform_matrix(
@@ -280,11 +318,49 @@ def fill_trainval_infos(data_path, nusc, train_scenes, val_scenes, test=False, m
         car_from_global = transform_matrix(
             ref_pose_rec['translation'], Quaternion(ref_pose_rec['rotation']), inverse=True,
         )
-
+        lidar_points,_=LidarPointCloud.from_file_multisweep(nusc,sample,"LIDAR_TOP","LIDAR_TOP")
+        
+        point=np.array(lidar_points.points).T
+        tmp=np.zeros(point.shape[1])
+        # l=l.reshape(len(l),1)
+        point = np.vstack((point, tmp))
+        tmp=np.ones(point.shape[1])*-1
+        point = np.vstack((point,tmp))
+        point=point.T
+    
+        # RADAR_LIST=["RADAR_FRONT","RADAR_BACK_LEFT","RADAR_BACK_RIGHT","RADAR_FRONT_RIGHT","RADAR_FRONT_LEFT"]
+        # for radar in RADAR_LIST:
+        #     radar,_=RadarPointCloud.from_file_multisweep(nusc,sample,radar,"LIDAR_TOP")
+        #     r_point=np.array(radar.points).T
+        #     r_point=r_point[:,:3]
+        #     point=np.concatenate((point,r_point))
+        np.save("./data/nuscenes/nuscenes_processed_data/"+'%06d.npy' % index,point)
         info = {
+            'lidar_npy':"./data/nuscenes/nuscenes_processed_data/"+'%06d.npy' % index,
             'lidar_path': Path(ref_lidar_path).relative_to(data_path).__str__(),
-            'cam_front_path': Path(ref_cam_path).relative_to(data_path).__str__(),
-            'cam_intrinsic': ref_cam_intrinsic,
+            'cam_front_path': Path(ref_cam_paths[0]).relative_to(data_path).__str__(),
+            'cam_intrinsic_front': ref_cam_intrinsics[0],
+            'cam_extrinsic_front':ref_cam_extrinsics[0],
+            
+            'cam_front_right_path': Path(ref_cam_paths[1]).relative_to(data_path).__str__(),
+            'cam_intrinsic_front_right': ref_cam_intrinsics[1],
+            'cam_extrinsic_front':ref_cam_extrinsics[1],
+
+            'cam_front_left_path': Path(ref_cam_paths[2]).relative_to(data_path).__str__(),
+            'cam_intrinsic_front_left': ref_cam_intrinsics[2],
+            'cam_extrinsic_front':ref_cam_extrinsics[2],
+
+            'cam_back_path': Path(ref_cam_paths[3]).relative_to(data_path).__str__(),
+            'cam_intrinsic_back': ref_cam_intrinsics[3],
+            'cam_extrinsic_front':ref_cam_extrinsics[3],
+
+            'cam_back_right_path': Path(ref_cam_paths[4]).relative_to(data_path).__str__(),
+            'cam_intrinsic_back_right': ref_cam_intrinsics[4],
+            'cam_extrinsic_front':ref_cam_extrinsics[4],
+
+            'cam_back_left_path': Path(ref_cam_paths[5]).relative_to(data_path).__str__(),
+            'cam_intrinsic_back_left': ref_cam_intrinsics[5],
+            'cam_extrinsic_front':ref_cam_extrinsics[5],
             'token': sample['token'],
             'sweeps': [],
             'ref_from_car': ref_from_car,
@@ -379,6 +455,9 @@ def fill_trainval_infos(data_path, nusc, train_scenes, val_scenes, test=False, m
     progress_bar.close()
     return train_nusc_infos, val_nusc_infos
 
+# def make_point_cloud(nusc,sample):
+#     ref_lidar_path, ref_boxes,_ = get_sample_data(nusc, ref_sd_token)
+#     lidar=LidarPointCloud.from_file(sample.)
 
 def boxes_lidar_to_nusenes(det_info):
     boxes3d = det_info['boxes_lidar']
@@ -449,6 +528,7 @@ def transform_det_annos_to_nusc_annos(det_annos, nusc):
                     attr = 'vehicle.stopped'
                 else:
                     attr = None
+            print(attr)
             attr = attr if attr is not None else max(
                 cls_attr_dist[name].items(), key=operator.itemgetter(1))[0]
             nusc_anno = {
