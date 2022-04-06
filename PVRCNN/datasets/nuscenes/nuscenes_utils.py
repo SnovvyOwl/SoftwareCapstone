@@ -528,7 +528,7 @@ def transform_det_annos_to_nusc_annos(det_annos, nusc):
                     attr = 'vehicle.stopped'
                 else:
                     attr = None
-            print(attr)
+            
             attr = attr if attr is not None else max(
                 cls_attr_dist[name].items(), key=operator.itemgetter(1))[0]
             nusc_anno = {
