@@ -251,7 +251,7 @@ class ModelManager(object):
 
         self.logger.info('Result is save to %s' %'result.pkl' )    
         self.logger.info('****************Evaluation done.*****************')
-        return det_annos, img_annos,ret_dict
+        return det_annos, img_annos
 
     def pred_2Dbox(self, img):
         '''
@@ -279,8 +279,4 @@ if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"
     ckpt = "./checkpoints/checkpoint_epoch_30.pth"
     test = ModelManager(root, ckpt)
-    a, b ,c= test.val()
-    with open("anno3d2.pkl", 'wb') as f:
-        pickle.dump(a, f)
-    with open("anno2d2.pkl", 'wb') as f:
-        pickle.dump(b, f)
+    a, b = test.val()
