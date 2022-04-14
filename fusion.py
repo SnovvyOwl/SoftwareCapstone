@@ -131,30 +131,25 @@ class Fusion(object):
         return extrinscis
 
     def main(self,annos3d,annos2d):
-        # annos3d, annos2d = self.val.val() # model 
-        # with open("anno3d.pkl", 'rb') as f:
-        #     annos3d = pickle.load(f)
-        # with open("anno2d.pkl", 'rb') as f:
-        #     annos2d = pickle.load(f)
-        sequence = annos2d[0]["frame_id"][0][0:-4]
-        self.current_intrinsics = annos2d[0]["intrinsic"]
-        self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
+        sequence = annos2d["frame_id"][0][0:-4]
+        self.current_intrinsics = annos2d["intrinsic"]
+        self.current_extrinsics = self.make_extrinsic_mat(annos2d["extrinsic"])
         
         fusion_res=copy.deepcopy(annos3d)
         img3d = {}
-        if annos2d[0]["frame_id"][0][0:-4] != sequence:
-            self.current_intrinsics = annos2d[0]["intrinsic"]
-            self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
+        if annos2d["frame_id"][0][0:-4] != sequence:
+            self.current_intrinsics = annos2d["intrinsic"]
+            self.current_extrinsics = self.make_extrinsic_mat(annos2d["extrinsic"])
             sequence=annos2d[0]["frame_id"][0][0:-4] 
-        xyz = np.load(self.root + sequence + '/0' + annos2d[0]["frame_id"][0][-3:] + ".npy")[:, :3]
+        xyz = np.load(self.root + sequence + '/0' + annos2d["frame_id"][0][-3:] + ".npy")[:, :3]
         point_planes = self.pointcloud2image(xyz)
-        frustum_for_onescene = self.make_frustum(annos2d[0]["anno"], xyz, point_planes)
+        frustum_for_onescene = self.make_frustum(annos2d["anno"], xyz, point_planes)
         box3d_to_2d = self.box_is_in_plane(annos3d[0])
         res = self.is_box_in_frustum(frustum_for_onescene, box3d_to_2d, xyz, annos3d[0]["boxes_lidar"])
         img3d["frustum"] = res
         img3d["segment_id"] = sequence
-        img3d["frame_id"] = sequence + '_' + annos2d[0]["frame_id"][0][-3:]
-        img3d["filename"] = annos2d[0]["image_id"]
+        img3d["frame_id"] = sequence + '_' + annos2d["frame_id"][0][-3:]
+        img3d["filename"] = annos2d["image_id"]
     
         for label in res:
             if label["is_generated"] is True:
@@ -162,27 +157,6 @@ class Fusion(object):
                     fusion_res[0]["name"]=np.append(fusion_res[0]["name"],label["label"])
                     fusion_res[0]["score"]=np.append(fusion_res[0]["score"],label["score"].cpu())
                     fusion_res[0]["boxes_lidar"] = np.vstack((fusion_res[0]["boxes_lidar"],label["PVRCNN_Formed_Box"]))
-        # for i in (range(len(annos2d))):  # all sequence
-        #     img3d = {}
-        #     if annos2d[i]["frame_id"][0][0:-4] != sequence:
-        #         self.current_intrinsics = annos2d[i]["intrinsic"]
-        #         self.current_extrinsics = self.make_extrinsic_mat(annos2d[i]["extrinsic"])
-        #         sequence=annos2d[i]["frame_id"][0][0:-4] 
-        #     xyz = np.load(self.root + sequence + '/0' + annos2d[i]["frame_id"][0][-3:] + ".npy")[:, :3]
-        #     point_planes = self.pointcloud2image(xyz)
-        #     frustum_for_onescene = self.make_frustum(annos2d[i]["anno"], xyz, point_planes)
-        #     box3d_to_2d = self.box_is_in_plane(annos3d[i])
-        #     res = self.is_box_in_frustum(frustum_for_onescene, box3d_to_2d, xyz, annos3d[i]["boxes_lidar"])
-        #     img3d["frustum"] = res
-        #     img3d["segment_id"] = sequence
-        #     img3d["frame_id"] = sequence + '_' + annos2d[i]["frame_id"][0][-3:]
-        #     img3d["filename"] = annos2d[i]["image_id"]
-        #     result.append(img3d)
-        #     for label in res:
-        #         if label["is_generated"] is True:
-        #             fusion_res[i]["name"]=np.append(fusion_res[i]["name"],label["label"])
-        #             fusion_res[i]["score"]=np.append(fusion_res[i]["score"],label["score"].cpu())
-        #             fusion_res[i]["boxes_lidar"] = np.append(fusion_res[ i]["boxes_lidar"],label["PVRCNN_Formed_Box"])
         return img3d, annos3d ,fusion_res
 
     def pointcloud2image(self, lidar):

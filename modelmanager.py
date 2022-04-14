@@ -145,7 +145,6 @@ class ModelManager(object):
         start_time = time.time()
         for i, batch_dict in enumerate(self.test_loader):
             idx = int(batch_dict["frame_id"][0][-3:])
-
             sequence_id = batch_dict["frame_id"][0][:-4]
             load_data_to_gpu(batch_dict)
 
@@ -175,8 +174,8 @@ class ModelManager(object):
                 pred_one_img = self.pred_2Dbox(img)  # 2d BOX anNOTATION. FOR 1 Image
                 img_pred["anno"].append(pred_one_img)
                 img_pred["image_id"].append(targets[i]["image_id"])
-            img_annos.append(img_pred)
-            result,annos3d,fusion_annos=self.fusion.main(annos,img_annos)
+            # img_annos.append(img_pred)
+            result,annos3d,fusion_annos=self.fusion.main(annos,img_pred)
             det_annos += fusion_annos
             not_det_annos+=annos3d
             frustum.append(result)
