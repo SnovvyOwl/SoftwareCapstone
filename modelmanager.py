@@ -137,6 +137,7 @@ class ModelManager(object):
             metric['recall_rcnn_%s' % str(cur_thresh)] = 0
         dataset = self.test_loader.dataset
         class_names = dataset.class_names
+        frustum=[]
         not_det_annos=[]
         det_annos = []
         img_annos = []
@@ -178,6 +179,7 @@ class ModelManager(object):
             result,annos3d,fusion_annos=self.fusion.main(annos,img_annos)
             det_annos += fusion_annos
             not_det_annos+=annos3d
+            frustum.append(result)
             if cfg.LOCAL_RANK == 0:
                 progress_bar.set_postfix(disp_dict)
                 progress_bar.update()
@@ -220,7 +222,6 @@ class ModelManager(object):
         self.logger.info('Average predicted number of objects(%d samples): %.3f'
                     % (len(not_det_annos), total_pred_objects / max(1, len(not_det_annos))))
 
-        print(total_pred_objects)
         pre_result_str, pre_result_dict = dataset.evaluation(
             not_det_annos, class_names,
             eval_metric=self.cfg.MODEL.POST_PROCESSING.EVAL_METRIC,
@@ -234,10 +235,12 @@ class ModelManager(object):
             total_pred_objects += anno['name'].__len__()
         self.logger.info('Average predicted number of objects(%d samples): %.3f'
                     % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
-        print(total_pred_objects)
         with open('result.pkl', 'wb') as f:
             pickle.dump(det_annos, f)
-
+        with open('annos3d.pkl', 'wb') as f:
+            pickle.dump(not_det_annos, f)
+        with open('frustum.pkl', 'wb') as f:
+            pickle.dump(frustum, f)
         result_str, result_dict = dataset.evaluation(
             det_annos, class_names,
             eval_metric=self.cfg.MODEL.POST_PROCESSING.EVAL_METRIC,

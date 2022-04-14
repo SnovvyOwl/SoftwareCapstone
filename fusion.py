@@ -139,7 +139,6 @@ class Fusion(object):
         sequence = annos2d[0]["frame_id"][0][0:-4]
         self.current_intrinsics = annos2d[0]["intrinsic"]
         self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
-        result = []
         
         fusion_res=copy.deepcopy(annos3d)
         img3d = {}
@@ -156,7 +155,7 @@ class Fusion(object):
         img3d["segment_id"] = sequence
         img3d["frame_id"] = sequence + '_' + annos2d[0]["frame_id"][0][-3:]
         img3d["filename"] = annos2d[0]["image_id"]
-        result.append(img3d)
+    
         for label in res:
             if label["is_generated"] is True:
                 if label["label"] in [ 'Vehicle', 'Pedestrian', 'Cyclist']:
@@ -184,12 +183,7 @@ class Fusion(object):
         #             fusion_res[i]["name"]=np.append(fusion_res[i]["name"],label["label"])
         #             fusion_res[i]["score"]=np.append(fusion_res[i]["score"],label["score"].cpu())
         #             fusion_res[i]["boxes_lidar"] = np.append(fusion_res[ i]["boxes_lidar"],label["PVRCNN_Formed_Box"])
-
-        with open("frustum.pkl", 'wb') as f:
-            pickle.dump(result, f)
-        with open("annos3d.pkl", 'wb') as f:
-            pickle.dump(annos3d, f)
-        return result, annos3d ,fusion_res
+        return img3d, annos3d ,fusion_res
 
     def pointcloud2image(self, lidar):
         '''
