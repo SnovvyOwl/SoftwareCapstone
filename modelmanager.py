@@ -16,6 +16,7 @@ from PVRCNN.models import build_network, load_data_to_gpu
 from PVRCNN.utils import common_utils
 from WaymoDataset import *
 from easydict import EasyDict
+from fusion import *
 
 WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 
@@ -47,6 +48,7 @@ class ModelManager(object):
         self.FASTERRCNN_model.cuda()
         self.FASTERRCNN_model.eval()
         self.logger
+        self.fusion=Fusion(root,PCckpt)
 
     def parse_config(self, ckptdir):
         parser = argparse.ArgumentParser(description='arg parser')
@@ -119,7 +121,7 @@ class ModelManager(object):
             model.eval()
             return model
 
-    def val(self):
+    def val(self,dist_test=False,epoch_id=30):
         '''
             DO: predictioin 3D and 2D
             OUTPUT: 3D result, 2D result
@@ -135,9 +137,10 @@ class ModelManager(object):
             metric['recall_rcnn_%s' % str(cur_thresh)] = 0
         dataset = self.test_loader.dataset
         class_names = dataset.class_names
+        not_det_annos=[]
         det_annos = []
         img_annos = []
-        progress_bar = tqdm.tqdm(total=len(self.test_loader), leave=True, desc='eval', dynamic_ncols=True)
+        progress_bar = tqdm(total=len(self.test_loader), leave=True, desc='eval', dynamic_ncols=True)
         start_time = time.time()
         for i, batch_dict in enumerate(self.test_loader):
             idx = int(batch_dict["frame_id"][0][-3:])
@@ -172,12 +175,81 @@ class ModelManager(object):
                 img_pred["anno"].append(pred_one_img)
                 img_pred["image_id"].append(targets[i]["image_id"])
             img_annos.append(img_pred)
-            det_annos += annos
-            progress_bar.set_postfix(disp_dict)
-            progress_bar.update()
-        progress_bar.close()
+            result,annos3d,fusion_annos=self.fusion.main(annos,img_annos)
+            det_annos += fusion_annos
+            not_det_annos+=annos3d
+            if cfg.LOCAL_RANK == 0:
+                progress_bar.set_postfix(disp_dict)
+                progress_bar.update()
+
+        if cfg.LOCAL_RANK == 0:
+            progress_bar.close()
+
+        if dist_test:
+            rank, world_size = common_utils.get_dist_info()
+            det_annos = common_utils.merge_results_dist(det_annos, len(dataset), tmpdir= 'tmpdir')
+            metric = common_utils.merge_results_dist([metric], world_size, tmpdir= 'tmpdir')
+
+        self.logger.info('*************** Performance of EPOCH %s *****************' % epoch_id)
+        sec_per_example = (time.time() - start_time) / len(dataset)
+        self.logger.info('Generate label finished(sec_per_example: %.4f second).' % sec_per_example)
+
+        if cfg.LOCAL_RANK != 0:
+            return {}
+        
+        
+        ret_dict = {}
+        if dist_test:
+            for key, val in metric[0].items():
+                for k in range(1, world_size):
+                    metric[0][key] += metric[k][key]
+            metric = metric[0]  
+        gt_num_cnt = metric['gt_num']
+        for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
+            cur_roi_recall = metric['recall_roi_%s' % str(cur_thresh)] / max(gt_num_cnt, 1)
+            cur_rcnn_recall = metric['recall_rcnn_%s' % str(cur_thresh)] / max(gt_num_cnt, 1)
+            self.logger.info('recall_roi_%s: %f' % (cur_thresh, cur_roi_recall))
+            self.logger.info('recall_rcnn_%s: %f' % (cur_thresh, cur_rcnn_recall))
+            ret_dict['recall/roi_%s' % str(cur_thresh)] = cur_roi_recall
+            ret_dict['recall/rcnn_%s' % str(cur_thresh)] = cur_rcnn_recall
+
+        total_pred_objects = 0
+        self.logger.info("PVRCNN")
+        for anno in not_det_annos:
+            total_pred_objects += anno['name'].__len__()
+        self.logger.info('Average predicted number of objects(%d samples): %.3f'
+                    % (len(not_det_annos), total_pred_objects / max(1, len(not_det_annos))))
+
+        print(total_pred_objects)
+        pre_result_str, pre_result_dict = dataset.evaluation(
+            not_det_annos, class_names,
+            eval_metric=self.cfg.MODEL.POST_PROCESSING.EVAL_METRIC,
+            output_path=final_output_dir
+        )
+        self.logger.info(pre_result_str)
+        self.logger.info("myresult")
+        
+        total_pred_objects = 0
+        for anno in det_annos:
+            total_pred_objects += anno['name'].__len__()
+        self.logger.info('Average predicted number of objects(%d samples): %.3f'
+                    % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
+        print(total_pred_objects)
+        with open('result.pkl', 'wb') as f:
+            pickle.dump(det_annos, f)
+
+        result_str, result_dict = dataset.evaluation(
+            det_annos, class_names,
+            eval_metric=self.cfg.MODEL.POST_PROCESSING.EVAL_METRIC,
+            output_path=final_output_dir
+        )
+
+        self.logger.info(result_str)
+        ret_dict.update(result_dict)
+
+        self.logger.info('Result is save to %s' %'result.pkl' )    
         self.logger.info('****************Evaluation done.*****************')
-        return det_annos, img_annos
+        return det_annos, img_annos,ret_dict
 
     def pred_2Dbox(self, img):
         '''
@@ -205,7 +277,7 @@ if __name__ == "__main__":
     root = "./data/waymo/waymo_processed_data/"
     ckpt = "./checkpoints/checkpoint_epoch_30.pth"
     test = ModelManager(root, ckpt)
-    a, b = test.val()
+    a, b ,c= test.val()
     with open("anno3d2.pkl", 'wb') as f:
         pickle.dump(a, f)
     with open("anno2d2.pkl", 'wb') as f:

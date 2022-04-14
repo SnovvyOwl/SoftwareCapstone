@@ -12,7 +12,7 @@ import PVRCNN.utils.common_utils
 import PVRCNN.ops.roiaware_pool3d.roiaware_pool3d_utils
 import math
 from PVRCNN.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu ,boxes_inbox_gpu
-
+import copy
 CAMMERA_NUM = 5
 
 
@@ -119,7 +119,7 @@ def boxes_to_corners_3d(boxes3d):
 
 class Fusion(object):
     def __init__(self, root, ckpt):
-        self.val = ModelManager(root, ckpt)
+        # self.val = ModelManager(root, ckpt)
         self.current_intrinsics = None
         self.current_extrinsics = None
         self.root = root
@@ -130,8 +130,8 @@ class Fusion(object):
             extrinscis.append(param[i])
         return extrinscis
 
-    def main(self):
-        annos3d, annos2d = self.val.val() # model 
+    def main(self,annos3d,annos2d):
+        # annos3d, annos2d = self.val.val() # model 
         # with open("anno3d.pkl", 'rb') as f:
         #     annos3d = pickle.load(f)
         # with open("anno2d.pkl", 'rb') as f:
@@ -140,27 +140,56 @@ class Fusion(object):
         self.current_intrinsics = annos2d[0]["intrinsic"]
         self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
         result = []
-        for i in tqdm((range(len(annos2d)))):  # all sequence
-            img3d = {}
-            if annos2d[i]["frame_id"][0][0:-4] != sequence:
-                self.current_intrinsics = annos2d[i]["intrinsic"]
-                self.current_extrinsics = self.make_extrinsic_mat(annos2d[i]["extrinsic"])
-                sequence=annos2d[i]["frame_id"][0][0:-4] 
-            xyz = np.load(self.root + sequence + '/0' + annos2d[i]["frame_id"][0][-3:] + ".npy")[:, :3]
-            point_planes = self.pointcloud2image(xyz)
-            frustum_for_onescene = self.make_frustum(annos2d[i]["anno"], xyz, point_planes)
-            box3d_to_2d = self.box_is_in_plane(annos3d[i])
-            res = self.is_box_in_frustum(frustum_for_onescene, box3d_to_2d, xyz, annos3d[i]["boxes_lidar"])
-            img3d["frustum"] = res
-            img3d["segment_id"] = sequence
-            img3d["frame_id"] = sequence + '_' + annos2d[i]["frame_id"][0][-3:]
-            img3d["filename"] = annos2d[i]["image_id"]
-            result.append(img3d)
+        
+        fusion_res=copy.deepcopy(annos3d)
+        img3d = {}
+        if annos2d[0]["frame_id"][0][0:-4] != sequence:
+            self.current_intrinsics = annos2d[0]["intrinsic"]
+            self.current_extrinsics = self.make_extrinsic_mat(annos2d[0]["extrinsic"])
+            sequence=annos2d[0]["frame_id"][0][0:-4] 
+        xyz = np.load(self.root + sequence + '/0' + annos2d[0]["frame_id"][0][-3:] + ".npy")[:, :3]
+        point_planes = self.pointcloud2image(xyz)
+        frustum_for_onescene = self.make_frustum(annos2d[0]["anno"], xyz, point_planes)
+        box3d_to_2d = self.box_is_in_plane(annos3d[0])
+        res = self.is_box_in_frustum(frustum_for_onescene, box3d_to_2d, xyz, annos3d[0]["boxes_lidar"])
+        img3d["frustum"] = res
+        img3d["segment_id"] = sequence
+        img3d["frame_id"] = sequence + '_' + annos2d[0]["frame_id"][0][-3:]
+        img3d["filename"] = annos2d[0]["image_id"]
+        result.append(img3d)
+        for label in res:
+            if label["is_generated"] is True:
+                if label["label"] in [ 'Vehicle', 'Pedestrian', 'Cyclist']:
+                    fusion_res[0]["name"]=np.append(fusion_res[0]["name"],label["label"])
+                    fusion_res[0]["score"]=np.append(fusion_res[0]["score"],label["score"].cpu())
+                    fusion_res[0]["boxes_lidar"] = np.vstack((fusion_res[0]["boxes_lidar"],label["PVRCNN_Formed_Box"]))
+        # for i in (range(len(annos2d))):  # all sequence
+        #     img3d = {}
+        #     if annos2d[i]["frame_id"][0][0:-4] != sequence:
+        #         self.current_intrinsics = annos2d[i]["intrinsic"]
+        #         self.current_extrinsics = self.make_extrinsic_mat(annos2d[i]["extrinsic"])
+        #         sequence=annos2d[i]["frame_id"][0][0:-4] 
+        #     xyz = np.load(self.root + sequence + '/0' + annos2d[i]["frame_id"][0][-3:] + ".npy")[:, :3]
+        #     point_planes = self.pointcloud2image(xyz)
+        #     frustum_for_onescene = self.make_frustum(annos2d[i]["anno"], xyz, point_planes)
+        #     box3d_to_2d = self.box_is_in_plane(annos3d[i])
+        #     res = self.is_box_in_frustum(frustum_for_onescene, box3d_to_2d, xyz, annos3d[i]["boxes_lidar"])
+        #     img3d["frustum"] = res
+        #     img3d["segment_id"] = sequence
+        #     img3d["frame_id"] = sequence + '_' + annos2d[i]["frame_id"][0][-3:]
+        #     img3d["filename"] = annos2d[i]["image_id"]
+        #     result.append(img3d)
+        #     for label in res:
+        #         if label["is_generated"] is True:
+        #             fusion_res[i]["name"]=np.append(fusion_res[i]["name"],label["label"])
+        #             fusion_res[i]["score"]=np.append(fusion_res[i]["score"],label["score"].cpu())
+        #             fusion_res[i]["boxes_lidar"] = np.append(fusion_res[ i]["boxes_lidar"],label["PVRCNN_Formed_Box"])
+
         with open("frustum.pkl", 'wb') as f:
             pickle.dump(result, f)
         with open("annos3d.pkl", 'wb') as f:
             pickle.dump(annos3d, f)
-        return result, annos3d
+        return result, annos3d ,fusion_res
 
     def pointcloud2image(self, lidar):
         '''
