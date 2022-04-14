@@ -4,11 +4,23 @@ import pickle
 import numpy as np
 from skimage import io
 
-from . import kitti_utils
-from ...ops.roiaware_pool3d import roiaware_pool3d_utils
-from ...utils import box_utils, calibration_kitti, common_utils, object3d_kitti
-from ..dataset import DatasetTemplate
-
+from PVRCNN.datasets.kitti import kitti_utils
+from PVRCNN.ops.roiaware_pool3d import roiaware_pool3d_utils
+from PVRCNN.utils import box_utils, calibration_kitti, common_utils, object3d_kitti
+from PVRCNN.datasets.dataset import DatasetTemplate
+KITTI_PVRCNN_CLASS={
+    'pedestrian': 'Pedestrian',
+    'motorcycle':'Cyclist',
+    'bicycle':'Cyclist',
+    'car':'Car',
+    'bus':'Car',
+    'truck':'Car',
+    'construction_vehicle':'Car',
+    'trailer':'Car',
+    'barrier':'Unknown',
+    'traffic_cone':'Unknown'
+    }
+   
 
 class KittiDataset(DatasetTemplate):
     def __init__(self, dataset_cfg, class_names, training=True, root_path=None, logger=None):
@@ -172,7 +184,9 @@ class KittiDataset(DatasetTemplate):
             if has_label:
                 obj_list = self.get_label(sample_idx)
                 annotations = {}
-                annotations['name'] = np.array([obj.cls_type for obj in obj_list])
+                annotations['name'] = np.array([KITTI_PVRCNN_CLASS[obj.cls_type] for obj in obj_list])
+                unknown_idx=np.where(annotations['name']=="Unknown")
+                
                 annotations['truncated'] = np.array([obj.truncation for obj in obj_list])
                 annotations['occluded'] = np.array([obj.occlusion for obj in obj_list])
                 annotations['alpha'] = np.array([obj.alpha for obj in obj_list])
@@ -182,7 +196,9 @@ class KittiDataset(DatasetTemplate):
                 annotations['rotation_y'] = np.array([obj.ry for obj in obj_list])
                 annotations['score'] = np.array([obj.score for obj in obj_list])
                 annotations['difficulty'] = np.array([obj.level for obj in obj_list], np.int32)
-
+                
+                
+                # num_objects=len(annotations['difficulty'])
                 num_objects = len([obj.cls_type for obj in obj_list if obj.cls_type != 'DontCare'])
                 num_gt = len(annotations['name'])
                 index = list(range(num_objects)) + [-1] * (num_gt - num_objects)
@@ -196,7 +212,19 @@ class KittiDataset(DatasetTemplate):
                 loc_lidar[:, 2] += h[:, 0] / 2
                 gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
                 annotations['gt_boxes_lidar'] = gt_boxes_lidar
-
+                
+                annotations['name']=np.delete(annotations['name'],unknown_idx)
+                annotations['truncated']=np.delete(annotations['truncated'],unknown_idx)
+                annotations['occluded']=np.delete(annotations['occluded'],unknown_idx)
+                annotations['alpha']=np.delete(annotations['alpha'],unknown_idx)
+                annotations['bbox']=np.delete(annotations['bbox'],unknown_idx,0)
+                annotations['dimensions']=np.delete(annotations['dimensions'],unknown_idx,0)
+                annotations['location']=np.delete(annotations['location'],unknown_idx,0)
+                annotations['rotation_y']=np.delete(annotations['rotation_y'],unknown_idx)
+                annotations['score']=np.delete(annotations['score'],unknown_idx)
+                annotations['difficulty']=np.delete(annotations['difficulty'],unknown_idx)
+                annotations['gt_boxes_lidar']=np.delete( annotations['gt_boxes_lidar'],unknown_idx,0)
+                annotations['index'] = np.delete(annotations['index'],unknown_idx)
                 info['annos'] = annotations
 
                 if count_inside_pts:
@@ -354,8 +382,7 @@ class KittiDataset(DatasetTemplate):
         if 'annos' not in self.kitti_infos[0].keys():
             return None, {}
 
-        from .kitti_object_eval_python import eval as kitti_eval
-
+        from PVRCNN.datasets.kitti.kitti_object_eval_python import eval as kitti_eval
         eval_det_annos = copy.deepcopy(det_annos)
         eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.kitti_infos]
         ap_result_str, ap_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)

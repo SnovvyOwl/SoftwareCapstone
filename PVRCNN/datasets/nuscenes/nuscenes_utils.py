@@ -75,9 +75,9 @@ cls_attr_dist = {
         'vehicle.parked': 0,
         'vehicle.stopped': 0,
     },
-    'bicycle': {
-        'cycle.with_rider': 2791,
-        'cycle.without_rider': 8946,
+    'Cyclist': { #bycycle
+        'cycle.with_rider': 2791+4233,
+        'cycle.without_rider': 8946+8326,
         'pedestrian.moving': 0,
         'pedestrian.sitting_lying_down': 0,
         'pedestrian.standing': 0,
@@ -95,15 +95,15 @@ cls_attr_dist = {
         'vehicle.parked': 3294,
         'vehicle.stopped': 3881,
     },
-    'car': {
+    'Vehicle': { #car
         'cycle.with_rider': 0,
         'cycle.without_rider': 0,
         'pedestrian.moving': 0,
         'pedestrian.sitting_lying_down': 0,
         'pedestrian.standing': 0,
-        'vehicle.moving': 114304,
-        'vehicle.parked': 330133,
-        'vehicle.stopped': 46898,
+        'vehicle.moving': 114304+882+9092+3421+21339,
+        'vehicle.parked': 330133+11549+3294+19224+55626,
+        'vehicle.stopped': 46898+2102+3881+1895+11097,
     },
     'construction_vehicle': {
         'cycle.with_rider': 0,
@@ -115,7 +115,7 @@ cls_attr_dist = {
         'vehicle.parked': 11549,
         'vehicle.stopped': 2102,
     },
-    'ignore': {
+    'Unknown': {
         'cycle.with_rider': 307,
         'cycle.without_rider': 73,
         'pedestrian.moving': 0,
@@ -135,7 +135,7 @@ cls_attr_dist = {
         'vehicle.parked': 0,
         'vehicle.stopped': 0,
     },
-    'pedestrian': {
+    'Pedestrian': {
         'cycle.with_rider': 0,
         'cycle.without_rider': 0,
         'pedestrian.moving': 157444,
