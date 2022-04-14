@@ -79,7 +79,7 @@ def boxes_to_corners_3d(boxes3d):
 
 
 if __name__ == "__main__":
-    frame_idx = 1
+    frame_idx = 22
     dirpath = "./data/waymo/waymo_infos_val.pkl"
     lines = [[0, 1], [1, 2], [2, 3], [0, 3], [0, 4], [4, 5],
              [5, 6], [6, 7], [4, 7], [1, 5], [2, 6], [3, 7]]
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         groudTruth_boxes.append(box3d)
     ############################################
 
-    with open("annos3d.pkl", 'rb') as f:
+    with open("result.pkl", 'rb') as f:
         annos3d = pickle.load(f)
     with open("frustum.pkl", 'rb') as f:
         frustum = pickle.load(f)
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     segs = []
     frustums = []
-    print(annos3d[frame_idx]["frame_id"])
+    print(frustum[frame_idx]["frame_id"])
     for f in frustum[frame_idx]["frustum"]:
         if f["is_generated"] is True:
             segs.append(f)
@@ -187,15 +187,15 @@ if __name__ == "__main__":
         vis.add_geometry(b)
     for b in box:
         vis.add_geometry(b)
-    # for b in boxes:
-    #     vis.add_geometry(b)
+    for b in boxes:
+        vis.add_geometry(b)
     vis.add_geometry(all)
     # for f in pcds:
     #     vis.add_geometry(f)
     vis.get_render_option().line_width = 100
     vis.update_renderer()
     print()
-    print("My predition: {0}".format(i))
+    print("My Pedestrian: {0}".format(i))
     print("My Vehicle: {0}".format(j))
     print("My Cyclist: {0}".format(k))
     vis.run()
