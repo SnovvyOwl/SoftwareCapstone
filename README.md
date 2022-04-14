@@ -184,11 +184,11 @@ python3 PVRCNN/setup.py build
 python3 PVRCNN/datasets/waymo/waymo_dataset.py --func create_waymo_infos --cfg_file PVRCNN/tools/cfgs/dataset_configs/waymo_dataset.yaml
 ```
 
-
 ### PVRCNN test
 ```dotnetcli
-python3 test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
+python3 PVRCNN/tools/test.py --cfg_file ./PVRCNN/tools/cfgs/waymo_models/pv_rcnn.yaml --batch_size 1 --ckpt [Cherckpoint Address]
 ```
+
 
 ## HOW TO RUN MY Code
 ### Inference
@@ -205,3 +205,8 @@ inference 파일을 실행하면 이미지와 포인트 클라우드를 받아�
 python3 DrawMyResult(G)_PVRCNN(R) and GT(K).py
 ```
 결과는 검정상자는 Ground Truth, 빨간상자는 PV-RCNN 결과이며, 초록 박스가 새로 예측된 박스이다.  
+
+
+
+python3 PVRCNN/tools/test.py --cfg_file ./PVRCNN/tools/cfgs/nuscenes_models/pv_rcnn.yaml --batch_size 1 --ckpt ./checkpoints/checkpoint_epoch_30.pth
+
