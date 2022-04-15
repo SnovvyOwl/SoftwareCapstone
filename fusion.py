@@ -155,7 +155,7 @@ class Fusion(object):
             if label["is_generated"] is True:
                 if label["label"] in [ 'Vehicle', 'Pedestrian', 'Cyclist']:
                     fusion_res[0]["name"]=np.append(fusion_res[0]["name"],label["label"])
-                    fusion_res[0]["score"]=np.append(fusion_res[0]["score"],label["score"].cpu())
+                    fusion_res[0]["score"]=np.append(fusion_res[0]["score"],np.array(min(fusion_res[0]["score"])))
                     fusion_res[0]["boxes_lidar"] = np.vstack((fusion_res[0]["boxes_lidar"],label["PVRCNN_Formed_Box"]))
         return img3d, annos3d ,fusion_res
 
