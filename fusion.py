@@ -584,7 +584,7 @@ class Fusion(object):
                         return None,None,None,None
                 # Result Form PV-RCNN
                 res = np.array([center_x, center_y, center_z, dx, dy, dz,-heading])
-                res2= np.array([center_x, center_y, center_z, dx*1.2, dy*1.2, dz*1.1,heading])
+                res2=np.array([center_x, center_y, center_z, dx*1.2, dy*1.2, dz*1.1,-heading])
 
             # Result Form Box
                 to_box_mat = np.array(
