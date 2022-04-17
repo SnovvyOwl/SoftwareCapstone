@@ -450,7 +450,7 @@ class Fusion(object):
                             break
             if found is False:
                 if frustum["centroid"] is not None:
-                    gen_box,gen_seg,gen_PVRCNNbox= self.make_3d_box(cp_xyz[frustum["large_frustum"]], frustum["centroid"],frustum["large_frustum"],frustum["label"])
+                    gen_box,gen_seg,gen_PVRCNNbox,gen_PVRCNNbox1_3= self.make_3d_box(cp_xyz[frustum["large_frustum"]], frustum["centroid"],frustum["large_frustum"],frustum["label"])
                     if gen_box is not None:
                         frustum_per_onescene[i]["3d_box"]=gen_box
                         frustum_per_onescene[i]["seg"]=gen_seg
@@ -462,6 +462,7 @@ class Fusion(object):
                             frustum_per_onescene[i]["3d_box"] = boxes_to_corners_3d(matched_box)
                         else:
                             frustum_per_onescene[i]["is_generated"] = True
+                            frustum_per_onescene[i]["PVRCNN_Formed_Box"]=gen_PVRCNNbox1_3.astype(np.float32)
                             cp_pvrcnn=np.vstack((cp_pvrcnn,gen_PVRCNNbox.astype(np.float32)))
                     else:
                         frustum_per_onescene[i]["3d_box"]=gen_box
@@ -527,9 +528,9 @@ class Fusion(object):
         """
         seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.01)
         if seg_idx is None:
-            return None,None,None
+            return None,None,None,None
         elif len(seg_idx)<15:
-            return None, None, None
+            return None, None, None,None
         else:
             # *********************************************************************************************
             # PCA
@@ -573,16 +574,17 @@ class Fusion(object):
             ratio=dy/dx
 
             if ratio<0.4:            ##Plane
-                return None,None,None
+                return None,None,None,None
             elif dy<0.25 or dx<0.25:  ## Column
-                return None,None,None
+                return None,None,None,None
             
             else:
                 if name!="Sign":
                     if (center_z-dz/2)>1: ## is UPPER
-                        return None,None,None
+                        return None,None,None,None
                 # Result Form PV-RCNN
                 res = np.array([center_x, center_y, center_z, dx, dy, dz,-heading])
+                res2= np.array([center_x, center_y, center_z, dx*1.2, dy*1.2, dz*1.1,heading])
 
             # Result Form Box
                 to_box_mat = np.array(
@@ -592,7 +594,7 @@ class Fusion(object):
                     [-dx / 2, dy / 2, -dz / 2, 1], [dx / 2, dy / 2, dz / 2, 1], [dx / 2, -dy / 2, dz / 2, 1],
                     [-dx / 2, -dy / 2, dz / 2, 1], [-dx / 2, dy / 2, dz / 2, 1]])
                 box = np.matmul(to_box_mat, template.T).T
-                return box, seg_cluster, res
+                return box, seg_cluster, res, res2
 
     def segmentation(self, frustum_point, centroid_point, frustum_idx,seg_frustum=True, max_radius=0.01):
         '''
