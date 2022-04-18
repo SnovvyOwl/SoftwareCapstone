@@ -248,7 +248,6 @@ class ModelManager(object):
 
         self.logger.info(result_str)
         ret_dict.update(result_dict)
-
         self.logger.info('Result is save to %s' %'result.pkl' )    
         self.logger.info('****************Evaluation done.*****************')
         return det_annos, img_annos
@@ -276,7 +275,7 @@ class ModelManager(object):
 if __name__ == "__main__":
     import pickle
 
-    root = "./data/waymo/waymo_processed_data/"
+    root = "/media/seongwon/9FA4-2425/data/waymo/waymo_processed_data/"
     ckpt = "./checkpoints/checkpoint_epoch_30.pth"
     test = ModelManager(root, ckpt)
     a, b = test.val()
