@@ -30,7 +30,6 @@ def rotate_points_along_z(points, angle):
         points: (B, N, 3 + C)
         angle: (B), angle along z-axis, angle increases x ==> y
     Returns:
-
     """
     points, is_numpy = check_numpy_to_torch(points)
     angle, _ = check_numpy_to_torch(angle)
@@ -60,7 +59,6 @@ def boxes_to_corners_3d(boxes3d):
       2 -------- 1
     Args:
         boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
-
     Returns:
     """
     boxes3d, is_numpy = check_numpy_to_torch(boxes3d)

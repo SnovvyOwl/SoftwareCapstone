@@ -21,9 +21,7 @@ def remove_points_in_boxes3d(points, boxes3d):
     Args:
         points: (num_points, 3 + C)
         boxes3d: (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center, each box DO NOT overlaps
-
     Returns:
-
     """
     boxes3d, is_numpy = PVRCNN.utils.common_utils.check_numpy_to_torch(boxes3d)
     points, is_numpy = PVRCNN.utils.common_utils.check_numpy_to_torch(points)
@@ -70,7 +68,6 @@ def rotate_points_along_z(points, angle):
         points: (B, N, 3 + C)
         angle: (B), angle along z-axis, angle increases x ==> y
     Returns:
-
     """
     points, is_numpy = check_numpy_to_torch(points)
     angle, _ = check_numpy_to_torch(angle)
@@ -100,7 +97,6 @@ def boxes_to_corners_3d(boxes3d):
       2 -------- 1
     Args:
         boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
-
     Returns:
     """
     boxes3d, is_numpy = check_numpy_to_torch(boxes3d)
@@ -431,7 +427,6 @@ class Fusion(object):
                                       |/         |/
                                       2 -------- 1
                         ["is_generated"] = Box is Generated?
-
         '''
         cp_pvrcnn=pvrcnn_box
         cp_xyz = xyz.copy()
@@ -524,7 +519,6 @@ class Fusion(object):
                       2 -------- 1
         Args:
             boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
-
         """
         seg_cluster, seg_idx = self.segmentation(frustum_point, centroid_point, frustum_idx, max_radius=0.01)
         if seg_idx is None:

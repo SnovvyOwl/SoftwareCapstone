@@ -275,7 +275,7 @@ class ModelManager(object):
 if __name__ == "__main__":
     import pickle
 
-    root = "/media/seongwon/9FA4-2425/data/waymo/waymo_processed_data/"
+    root = "./data/waymo/waymo_processed_data/"
     ckpt = "./checkpoints/checkpoint_epoch_30.pth"
     test = ModelManager(root, ckpt)
     a, b = test.val()
